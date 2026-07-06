@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Shroq mark</title>
+  <desc id="desc">A rounded app icon with a release loop, verified patch check, and sunrise dot.</desc>
+  <defs>
+    <linearGradient id="shroq-bg" x1="43" y1="31" x2="213" y2="225" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#102129"/>
+      <stop offset="0.58" stop-color="#0B3B3D"/>
+      <stop offset="1" stop-color="#0A705F"/>
+    </linearGradient>
+    <linearGradient id="shroq-loop" x1="57" y1="72" x2="210" y2="205" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E9FFF8"/>
+      <stop offset="1" stop-color="#28D2B4"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#08242A" flood-opacity="0.26"/>
+    </filter>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" rx="54" fill="url(#shroq-bg)" filter="url(#soft-shadow)"/>
+  <path
+    d="M75 143C75 103 105 74 145 74C178 74 203 96 210 128"
+    fill="none"
+    stroke="#E9FFF8"
+    stroke-width="22"
+    stroke-linecap="round"
+  />
+  <path
+    d="M210 128C213 170 180 207 134 207C92 207 59 178 59 139"
+    fill="none"
+    stroke="url(#shroq-loop)"
+    stroke-width="22"
+    stroke-linecap="round"
+  />
+  <path
+    d="M160 160L202 202"
+    fill="none"
+    stroke="#F2B64B"
+    stroke-width="24"
+    stroke-linecap="round"
+  />
+  <path
+    d="M103 132L127 156L171 104"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="17"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="182" cy="78" r="13" fill="#F2B64B"/>
+</svg>

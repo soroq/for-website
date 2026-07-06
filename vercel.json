@@ -1,0 +1,30 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/v1/(.*)",
+      "destination": "/api/v1/[...path]?path=$1"
+    },
+    {
+      "source": "/quickstart",
+      "destination": "/quickstart.html"
+    },
+    {
+      "source": "/cli",
+      "destination": "/cli.html"
+    },
+    {
+      "source": "/control-plane",
+      "destination": "/control-plane.html"
+    },
+    {
+      "source": "/compatibility",
+      "destination": "/compatibility.html"
+    },
+    {
+      "source": "/operator",
+      "destination": "/operator.html"
+    }
+  ]
+}
