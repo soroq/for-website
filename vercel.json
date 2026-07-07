@@ -11,6 +11,10 @@
       "destination": "/quickstart.html"
     },
     {
+      "source": "/cli/login",
+      "destination": "/cli-login.html"
+    },
+    {
       "source": "/cli",
       "destination": "/cli.html"
     },

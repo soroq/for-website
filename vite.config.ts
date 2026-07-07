@@ -27,6 +27,7 @@ export default defineConfig({
         "control-plane": path.resolve(__dirname, "website/control-plane.html"),
         compatibility: path.resolve(__dirname, "website/compatibility.html"),
         operator: path.resolve(__dirname, "website/operator.html"),
+        "cli-login": path.resolve(__dirname, "website/cli-login.html"),
       },
     },
   },
