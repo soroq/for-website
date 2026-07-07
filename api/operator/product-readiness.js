@@ -1,4 +1,4 @@
-const { fetchJSON, isOperatorScopeDenied } = require("../_lib/control-plane");
+const { fetchJSON, forwardJSON, isOperatorScopeDenied } = require("../_lib/control-plane");
 const { optional } = require("../_lib/env");
 const { json, methodNotAllowed, notConfigured } = require("../_lib/http");
 const { requireOperator } = require("../_lib/operator-auth");
@@ -58,6 +58,23 @@ function workspaceSlug(email) {
 module.exports = async function handler(req, res) {
   if (req.method !== "GET") {
     methodNotAllowed(req, res, ["GET"]);
+    return;
+  }
+
+  // Consolidated route: /api/operator/healthz is rewritten here because Vercel
+  // caps serverless functions per deployment. Behaviour is byte-identical to
+  // the former api/operator/healthz.js; the product-readiness path below is
+  // unchanged.
+  if (req.query && req.query.__op === "healthz") {
+    try {
+      const operator = await requireOperator(req, res);
+      if (!operator) {
+        return;
+      }
+      await forwardJSON(res, "/healthz", { operator });
+    } catch (error) {
+      notConfigured(res, error);
+    }
     return;
   }
 
