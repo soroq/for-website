@@ -1,11 +1,15 @@
 import {
   AlertCircle,
+  Apple,
   ArrowRight,
   BarChart3,
   CheckCircle2,
   ChevronRight,
   CircleGauge,
+  ClipboardCheck,
+  Copy,
   Download,
+  ExternalLink,
   FileCode2,
   FileArchive,
   GitBranch,
@@ -21,6 +25,7 @@ import {
   Server,
   Settings as SettingsIcon,
   ShieldCheck,
+  Smartphone,
   TerminalSquare,
   Wifi,
 } from "lucide-react";
@@ -316,10 +321,11 @@ const releaseFeed = [
 
 const pageNavItems = [
   { label: "Home", href: "/" },
-  { label: "Quickstart", href: "/quickstart.html" },
+  { label: "Getting started", href: "/getting-started.html" },
   { label: "CLI", href: "/cli.html" },
-  { label: "Control plane", href: "/control-plane.html" },
-  { label: "Compatibility", href: "/compatibility.html" },
+  { label: "Android", href: "/android-quickstart.html" },
+  { label: "iOS", href: "/ios-quickstart.html" },
+  { label: "Troubleshooting", href: "/troubleshooting.html" },
   { label: "Dashboard", href: "/operator.html" },
 ] as const;
 
@@ -328,7 +334,11 @@ type ProductPageKey =
   | "cli"
   | "control-plane"
   | "compatibility"
-  | "operator";
+  | "operator"
+  | "getting-started"
+  | "android-quickstart"
+  | "ios-quickstart"
+  | "troubleshooting";
 
 type ProductPageConfig = {
   key: ProductPageKey;
@@ -392,7 +402,413 @@ const productPages: ProductPageConfig[] = [
     secondary: { label: "Read compatibility", href: "/compatibility.html" },
     facts: ["Firebase auth", "release inventory", "patch-health lookup"],
   },
+  {
+    key: "getting-started",
+    path: "/getting-started.html",
+    eyebrow: "Onboarding",
+    title: "Set up Soroq and ship your first hard OTA patch.",
+    body: "Install the CLI, add the frontend and toolchains, verify with doctor, then log in only when you are ready to publish. Installs and doctor need no login.",
+    primary: { label: "Install the CLI", href: "/cli" },
+    secondary: { label: "Android quickstart", href: "/android-quickstart" },
+    facts: ["CLI + toolchains", "doctor before login", "publish when ready"],
+  },
+  {
+    key: "android-quickstart",
+    path: "/android-quickstart.html",
+    eyebrow: "Android hard OTA",
+    title: "Take a Flutter APK to a code patch, then roll it back.",
+    body: "Register a base APK, publish a signed code patch at full rollout, then roll back on the next cold start. Experimental hard-OTA tier, public-alpha.",
+    primary: { label: "Install the CLI", href: "/cli" },
+    secondary: { label: "Getting started", href: "/getting-started" },
+    facts: ["base to patch to rollback", "two cold-start model", "server-side rollback"],
+  },
+  {
+    key: "ios-quickstart",
+    path: "/ios-quickstart.html",
+    eyebrow: "iOS hard OTA (experimental)",
+    title: "Patch a running Flutter engine on a physical iPhone.",
+    body: "Declare patchable functions, build a signed base, publish an engine patch, and roll back. Physical device only, Apple signing required, experimental tier.",
+    primary: { label: "Install the CLI", href: "/cli" },
+    secondary: { label: "Getting started", href: "/getting-started" },
+    facts: ["physical device only", "signed manifest_trust", "experimental tier"],
+  },
+  {
+    key: "troubleshooting",
+    path: "/troubleshooting.html",
+    eyebrow: "Troubleshooting",
+    title: "Fix the errors you are most likely to hit.",
+    body: "Keychain fallbacks, missing frontend or toolchain, stale Android status, iOS device limits, and fail-closed signature errors.",
+    primary: { label: "Getting started", href: "/getting-started" },
+    secondary: { label: "CLI install", href: "/cli" },
+    facts: ["keychain fallback", "install fixes", "fail-closed signatures"],
+  },
 ];
+
+const publicInstallCommand = `curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/soroq/install/main/install.sh -sSf | bash
+export PATH="$HOME/.soroq/bin:$PATH"
+soroq version   # -> soroq v0.2.0`;
+
+type DocTone = "info" | "warn" | "success";
+
+type DocCallout = { tone?: DocTone; title?: string; body: string };
+
+type DocStep = {
+  title: string;
+  body?: string;
+  commands?: string[];
+  callout?: DocCallout;
+};
+
+type DocRow = { term: string; detail: string };
+
+type DocSection = {
+  heading: string;
+  intro?: string;
+  steps?: DocStep[];
+  commands?: string[];
+  callout?: DocCallout;
+  callouts?: DocCallout[];
+  rows?: DocRow[];
+};
+
+type DocLink = { label: string; href: string; external?: boolean };
+
+type DocPage = {
+  intro?: string;
+  sections: DocSection[];
+  links?: DocLink[];
+};
+
+const docPages: Partial<Record<ProductPageKey, DocPage>> = {
+  "getting-started": {
+    intro:
+      "This is the real new-user flow, in order. Installs and doctor work without an account; only publishing needs a login.",
+    sections: [
+      {
+        heading: "1. Install the Soroq CLI",
+        intro: "macOS only for the beta. This installs both soroq and soroqctl.",
+        commands: [publicInstallCommand],
+        callouts: [
+          {
+            tone: "info",
+            body: "Full install details, checksum verification, and quarantine removal live on the CLI page.",
+          },
+        ],
+      },
+      {
+        heading: "2. Install the frontend and toolchains",
+        intro:
+          "Pin the frontend and both platform toolchains, then run doctor. None of these steps require a login.",
+        commands: [
+          "soroq frontend install soroq-flutter-frontend-f74781f6-6903c161 --api https://api.soroq.dev",
+          "soroq toolchain install soroq-android-3.44.2-release-12d3315131f5 --api https://api.soroq.dev",
+          "soroq toolchain install soroq-ios-3.44.2-profile-f74781f6-3499c008-local-r3-dynmodules --api https://api.soroq.dev",
+          "soroq toolchain doctor",
+        ],
+        callouts: [
+          {
+            tone: "success",
+            body: "soroq toolchain doctor reports whether the frontend and toolchains are present and consistent.",
+          },
+        ],
+      },
+      {
+        heading: "3. Log in (only for publishing)",
+        intro:
+          "Authenticate against the hosted surface, then confirm your identity. You only need this before you publish a release or patch.",
+        commands: [
+          "soroq login --hosted-surface https://soroq.dev --api https://api.soroq.dev",
+          "soroq whoami --api https://api.soroq.dev",
+        ],
+      },
+      {
+        heading: "4. Ship your first patch",
+        intro:
+          "Pick a platform quickstart and run a full base to patch to rollback cycle.",
+      },
+    ],
+    links: [
+      { label: "Install the CLI", href: "/cli" },
+      { label: "Android hard OTA quickstart", href: "/android-quickstart" },
+      { label: "iOS hard OTA quickstart", href: "/ios-quickstart" },
+      { label: "Troubleshooting", href: "/troubleshooting" },
+    ],
+  },
+  cli: {
+    intro:
+      "The Soroq CLI ships as a public install script for macOS. It installs both soroq and soroqctl into $HOME/.soroq/bin.",
+    sections: [
+      {
+        heading: "Install on macOS",
+        intro:
+          "Run the public installer, add the bin directory to your PATH, and check the version. Apple Silicon and Intel are both supported; install.sh auto-detects your architecture.",
+        commands: [publicInstallCommand],
+        callouts: [
+          {
+            tone: "warn",
+            body: "macOS only for the beta. Linux and Windows are pending.",
+          },
+        ],
+      },
+      {
+        heading: "Verify the download (SHA256)",
+        intro:
+          "install.sh verifies the SHA256 automatically. To check manually, download the release tarball and checksums.txt from the public release, then verify.",
+        commands: ["shasum -a 256 -c checksums.txt"],
+      },
+      {
+        heading: "Clear the macOS quarantine",
+        intro:
+          "If Gatekeeper blocks the binaries, remove the quarantine attribute:",
+        commands: [
+          'xattr -dr com.apple.quarantine "$HOME/.soroq/bin/soroq" "$HOME/.soroq/bin/soroqctl"',
+        ],
+      },
+      {
+        heading: "Confirm the version",
+        commands: ["soroq version   # -> soroq v0.2.0"],
+      },
+    ],
+    links: [
+      {
+        label: "github.com/soroq/install",
+        href: "https://github.com/soroq/install",
+        external: true,
+      },
+      {
+        label: "Release v0.2.0 (downloads + checksums.txt)",
+        href: "https://github.com/soroq/install/releases/tag/v0.2.0",
+        external: true,
+      },
+      { label: "Getting started", href: "/getting-started" },
+    ],
+  },
+  "android-quickstart": {
+    intro:
+      "A complete copy-paste flow: stock Flutter app, base APK release, a visible code patch at full rollout, and a verified rollback. Replace each <id> with your own identifier.",
+    sections: [
+      {
+        heading: "1. Create the app and add Soroq",
+        commands: [
+          "flutter create my_app",
+          "cd my_app",
+          "flutter pub add soroq_flutter",
+          "soroq init --app-id <id> --channel stable --api https://api.soroq.dev",
+        ],
+      },
+      {
+        heading: "2. Cut the base release",
+        intro: "Register the stock APK as the base the patch will target.",
+        commands: [
+          "soroq release android --toolchain soroq-android-3.44.2-release-12d3315131f5 --artifact-type apk --api https://api.soroq.dev --release-id <id> --version 1.0.0+1 --channel stable",
+        ],
+      },
+      {
+        heading: "3. Change visible code and patch",
+        intro:
+          "Edit a lib/ Dart file so a visible value changes, then publish a code patch at 100% rollout.",
+        commands: [
+          "soroq patch android --release-id <id> --toolchain soroq-android-3.44.2-release-12d3315131f5 --artifact-type apk --api https://api.soroq.dev --patch-id <id> --channel stable --track stable --kind code --rollout 100",
+        ],
+        callout: {
+          tone: "info",
+          title: "Two-cold-start model",
+          body: "The first launch after a patch is published stages the patch (downloads and verifies it). The next cold start activates it. A single launch does not both stage and activate.",
+        },
+      },
+      {
+        heading: "4. Roll back",
+        commands: [
+          "soroq rollback --patch-id <id> --api https://api.soroq.dev --verify",
+        ],
+        callout: {
+          tone: "warn",
+          title: "Rollback nuance (be honest with yourself)",
+          body: "An already-running process may still show patched code for that launch. The NEXT cold start serves the base. Rollback is a server-side decision; --verify confirms it landed.",
+        },
+      },
+      {
+        heading: "Proven flow",
+        intro:
+          "This exact cycle has been exercised end to end on the experimental hard-OTA tier.",
+        rows: [
+          { term: "Base", detail: "app shows value 42" },
+          { term: "Patch", detail: "app shows value 91 after activation" },
+          { term: "Rollback", detail: "next cold start returns to 42" },
+          { term: "Tamper", detail: "a tampered patch is refused (fail-closed)" },
+        ],
+      },
+    ],
+    links: [
+      { label: "Getting started", href: "/getting-started" },
+      { label: "Install the CLI", href: "/cli" },
+      { label: "iOS quickstart", href: "/ios-quickstart" },
+      { label: "Troubleshooting", href: "/troubleshooting" },
+    ],
+  },
+  "ios-quickstart": {
+    intro:
+      "iOS hard OTA is experimental and physical-device only. It does not run on the simulator, and Apple signing is required to install and run on device. The engine and toolchain are an experimental tier.",
+    sections: [
+      {
+        heading: "Requirements",
+        callouts: [
+          {
+            tone: "warn",
+            title: "Physical iPhone only",
+            body: "The simulator is not supported. You need a real device, Apple signing set up, and the experimental iOS engine/toolchain tier.",
+          },
+        ],
+      },
+      {
+        heading: "1. Create the app and install frontend + toolchain",
+        commands: [
+          "flutter create my_app && cd my_app",
+          "flutter pub add soroq_flutter",
+          "soroq frontend install soroq-flutter-frontend-f74781f6-6903c161 --api https://api.soroq.dev",
+          "soroq toolchain install soroq-ios-3.44.2-profile-f74781f6-3499c008-local-r3-dynmodules --api https://api.soroq.dev",
+        ],
+      },
+      {
+        heading: "2. Declare patchable functions in soroq.yaml",
+        intro:
+          "List the functions the engine is allowed to patch under ios_engine. Use the lib/<file>.dart#<function> form.",
+        commands: [
+          `ios_engine:
+  enabled: true
+  patchable:
+    - "lib/foo.dart#myFn"`,
+        ],
+        callout: {
+          tone: "info",
+          title: "manifest_trust auto-scaffolds",
+          body: "Soroq generates manifest_trust for you: only the public key is written into your project. The private seed is stored at mode 0600 and gitignored.",
+        },
+      },
+      {
+        heading: "3. Build the signed base release",
+        commands: [
+          "soroq release ios --engine --build --toolchain soroq-ios-3.44.2-profile-f74781f6-3499c008-local-r3-dynmodules --app-id <id> --release-id <id> --channel <ch> --api https://api.soroq.dev",
+        ],
+      },
+      {
+        heading: "4. Publish an engine patch",
+        commands: [
+          "soroq patch ios --engine --toolchain soroq-ios-3.44.2-profile-f74781f6-3499c008-local-r3-dynmodules --app-id <id> --release-id <id> --patch-id <id> --channel <ch> --api https://api.soroq.dev",
+        ],
+        callout: {
+          tone: "info",
+          body: "A patch may only direct-call retained or manifest-listed symbols. Calls into symbols that were stripped are not available to the patch.",
+        },
+      },
+      {
+        heading: "5. Roll back",
+        commands: [
+          "soroq rollback ios-engine --patch-id <id> --api https://api.soroq.dev --verify",
+        ],
+      },
+      {
+        heading: "Expected values",
+        rows: [
+          { term: "Base", detail: "device shows the base value" },
+          { term: "Patch", detail: "device shows the patched value" },
+          { term: "Rollback", detail: "device returns to the base value" },
+          {
+            term: "Tamper",
+            detail: "refused: sig=FAIL, bad manifest signature (fail-closed)",
+          },
+        ],
+      },
+    ],
+    links: [
+      { label: "Getting started", href: "/getting-started" },
+      { label: "Install the CLI", href: "/cli" },
+      { label: "Android quickstart", href: "/android-quickstart" },
+      { label: "Troubleshooting", href: "/troubleshooting" },
+    ],
+  },
+  troubleshooting: {
+    intro:
+      "The errors you are most likely to hit, with the fix for each. Patches are version and runtime specific, and signature failures are fail-closed.",
+    sections: [
+      {
+        heading: "Login and identity",
+        rows: [
+          {
+            term: "Keychain not found",
+            detail:
+              "On a fresh or sandboxed HOME the token falls back to ~/.soroq/config.json at mode 0600. Verify with soroq whoami.",
+          },
+        ],
+      },
+      {
+        heading: "Missing frontend or toolchain",
+        rows: [
+          {
+            term: "Frontend missing",
+            detail:
+              "soroq frontend install soroq-flutter-frontend-f74781f6-6903c161 --api https://api.soroq.dev",
+          },
+          {
+            term: "Toolchain missing",
+            detail:
+              "soroq toolchain install <toolchain> --api https://api.soroq.dev (Android: soroq-android-3.44.2-release-12d3315131f5, iOS: soroq-ios-3.44.2-profile-f74781f6-3499c008-local-r3-dynmodules)",
+          },
+        ],
+      },
+      {
+        heading: "Android",
+        rows: [
+          {
+            term: "Status looks stale after a check",
+            detail:
+              "Read getAutoUpdateState() after the check completes, not only the immediate return value of runAutoUpdateNow().",
+          },
+          {
+            term: "Rollback still shows patched code",
+            detail:
+              "An already-running process may keep patched code for that launch. The NEXT cold start serves the base.",
+          },
+        ],
+      },
+      {
+        heading: "iOS",
+        rows: [
+          {
+            term: "Nothing happens on the simulator",
+            detail:
+              "Hard OTA is physical-device only. The simulator is not supported.",
+          },
+          {
+            term: "App will not install or run",
+            detail: "Apple signing is required to install and run on device.",
+          },
+        ],
+      },
+      {
+        heading: "Versions and signatures",
+        rows: [
+          {
+            term: "Version bump / runtime_id mismatch",
+            detail:
+              "Patches are version and runtime specific. A version bump needs a new base release and a new patch built against it.",
+          },
+          {
+            term: "manifest_signature_invalid / tamper error",
+            detail:
+              "This is fail-closed: the patch is NOT applied. Rebuild and re-sign from a trusted manifest.",
+          },
+        ],
+      },
+    ],
+    links: [
+      { label: "Getting started", href: "/getting-started" },
+      { label: "Install the CLI", href: "/cli" },
+      { label: "Android quickstart", href: "/android-quickstart" },
+      { label: "iOS quickstart", href: "/ios-quickstart" },
+    ],
+  },
+};
 
 const commandRows = [
   {
@@ -764,10 +1180,13 @@ function App() {
           viewport: { once: true, amount: 0.2 },
           transition: { duration: 0.58, delay },
         };
+  const currentPath = window.location.pathname;
+  const normalizePath = (value: string) =>
+    value !== "/" && value.endsWith(".html") ? value.slice(0, -5) : value;
   const page = productPages.find(
     (candidate) =>
-      candidate.path === window.location.pathname ||
-      (candidate.key === "operator" && isOperatorRoute(window.location.pathname)),
+      normalizePath(candidate.path) === normalizePath(currentPath) ||
+      (candidate.key === "operator" && isOperatorRoute(currentPath)),
   );
 
   if (page) {
@@ -876,6 +1295,14 @@ function App() {
             </div>
           </div>
           <HealthConsole />
+        </motion.section>
+
+        <motion.section
+          {...reveal()}
+          id="status"
+          className="mx-auto max-w-[1510px] px-3 py-10 sm:px-6"
+        >
+          <ProductStatus />
         </motion.section>
 
         <motion.section
@@ -3241,6 +3668,8 @@ function ProductPage({
   pointer: PointerMotion;
   reducedMotion: boolean | null;
 }) {
+  const doc = docPages[page.key];
+  const isPureDoc = Boolean(doc) && page.key !== "cli";
   return (
     <main className="min-h-screen bg-page">
       <SiteHeader activePath={page.path} />
@@ -3284,17 +3713,296 @@ function ProductPage({
             </div>
           </motion.div>
 
-          <ProductShowcase
-            pageKey={page.key}
-            pointer={pointer}
-            reducedMotion={reducedMotion}
-          />
+          {isPureDoc && doc ? (
+            <DocHeroAside page={page} doc={doc} reducedMotion={reducedMotion} />
+          ) : (
+            <ProductShowcase
+              pageKey={page.key}
+              pointer={pointer}
+              reducedMotion={reducedMotion}
+            />
+          )}
         </div>
       </section>
 
-      <ProductDetails pageKey={page.key} reducedMotion={reducedMotion} />
+      {isPureDoc ? null : (
+        <ProductDetails pageKey={page.key} reducedMotion={reducedMotion} />
+      )}
       {page.key === "cli" ? <CliOperationalDetails /> : null}
+      {doc ? <DocsArticle doc={doc} reducedMotion={reducedMotion} /> : null}
     </main>
+  );
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard
+          ?.writeText(value)
+          .then(() => {
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1600);
+          })
+          .catch(() => undefined);
+      }}
+      className="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.06] px-2.5 py-1.5 font-mono text-[0.68rem] uppercase text-white/62 transition-colors hover:bg-white/[0.12]"
+      aria-label={copied ? "Copied" : "Copy to clipboard"}
+    >
+      {copied ? (
+        <ClipboardCheck className="size-3.5 text-success" />
+      ) : (
+        <Copy className="size-3.5 text-coral" />
+      )}
+      {copied ? "copied" : "copy"}
+    </button>
+  );
+}
+
+function CommandBlock({ code }: { code: string }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#151616] shadow-card ring-1 ring-white/5">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-2.5">
+        <span className="inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase text-white/45">
+          <TerminalSquare className="size-3.5 text-coral" />
+          shell
+        </span>
+        <CopyButton value={code} />
+      </div>
+      <pre className="overflow-x-auto px-4 py-3.5">
+        <code className="block whitespace-pre font-mono text-[0.78rem] leading-6 text-white/82">
+          {code}
+        </code>
+      </pre>
+    </div>
+  );
+}
+
+const docCalloutTone: Record<DocTone, { wrap: string; icon: string }> = {
+  info: { wrap: "border-blueprint/25 bg-blueprint/[0.08]", icon: "text-blueprint" },
+  warn: { wrap: "border-coral/30 bg-coral/[0.08]", icon: "text-coral" },
+  success: { wrap: "border-success/30 bg-success/[0.1]", icon: "text-success" },
+};
+
+function DocCalloutCard({ callout }: { callout: DocCallout }) {
+  const tone = callout.tone ?? "info";
+  const styles = docCalloutTone[tone];
+  const Icon = tone === "warn" ? AlertCircle : tone === "success" ? CheckCircle2 : ShieldCheck;
+
+  return (
+    <div className={`flex gap-3 rounded-2xl border p-4 ${styles.wrap}`}>
+      <Icon className={`mt-0.5 size-5 shrink-0 ${styles.icon}`} />
+      <div className="min-w-0">
+        {callout.title ? (
+          <p className="text-sm font-bold text-foreground">{callout.title}</p>
+        ) : null}
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{callout.body}</p>
+      </div>
+    </div>
+  );
+}
+
+function DocHeroAside({
+  page,
+  doc,
+  reducedMotion,
+}: {
+  page: ProductPageConfig;
+  doc: DocPage;
+  reducedMotion: boolean | null;
+}) {
+  return (
+    <motion.aside
+      className="relative w-full min-w-0 overflow-hidden rounded-[2rem] bg-white p-6 shadow-card ring-1 ring-primary/10 sm:p-7"
+      initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+      animate={reducedMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.08 }}
+    >
+      <div className="flex items-center gap-3">
+        <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground">
+          <ListChecks className="size-5" />
+        </span>
+        <p className="font-mono text-xs uppercase text-muted-foreground">On this page</p>
+      </div>
+      <ol className="mt-5 grid gap-2">
+        {doc.sections.map((section, index) => (
+          <li
+            key={section.heading}
+            className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-page px-4 py-3"
+          >
+            <span className="grid size-7 place-items-center rounded-full bg-accent font-mono text-xs font-bold text-accent-foreground">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="text-sm font-semibold text-foreground">{section.heading}</span>
+          </li>
+        ))}
+      </ol>
+      {doc.links && doc.links.length > 0 ? (
+        <div className="mt-6 border-t border-primary/10 pt-5">
+          <p className="font-mono text-xs uppercase text-muted-foreground">Related</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {doc.links.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                {...(link.external
+                  ? { target: "_blank", rel: "noreferrer noopener" }
+                  : {})}
+                className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-primary/10 bg-white px-3 py-2 text-xs font-bold text-foreground shadow-soft transition-colors hover:bg-accent"
+              >
+                {link.external ? (
+                  <ExternalLink className="size-3.5 text-coral" />
+                ) : (
+                  <ArrowRight className="size-3.5 text-coral" />
+                )}
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <p className="mt-6 text-xs leading-5 text-muted-foreground">
+        {page.eyebrow}
+      </p>
+    </motion.aside>
+  );
+}
+
+function DocsArticle({
+  doc,
+  reducedMotion,
+}: {
+  doc: DocPage;
+  reducedMotion: boolean | null;
+}) {
+  return (
+    <section className="mx-auto max-w-[1420px] px-5 pb-20 sm:px-8">
+      {doc.intro ? (
+        <p className="mx-auto mb-10 max-w-3xl text-lg leading-8 text-muted-foreground">
+          {doc.intro}
+        </p>
+      ) : null}
+      <div className="grid gap-5">
+        {doc.sections.map((section, index) => (
+          <motion.article
+            key={section.heading}
+            className="rounded-[1.75rem] border border-primary/10 bg-white p-5 shadow-card sm:p-8"
+            initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+            whileInView={reducedMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.14 }}
+            transition={{ duration: 0.5, delay: Math.min(index, 3) * 0.05 }}
+          >
+            <h2 className="text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+              {section.heading}
+            </h2>
+            {section.intro ? (
+              <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">
+                {section.intro}
+              </p>
+            ) : null}
+
+            {section.commands && section.commands.length > 0 ? (
+              <div className="mt-5 grid gap-3">
+                {section.commands.map((command) => (
+                  <CommandBlock key={command} code={command} />
+                ))}
+              </div>
+            ) : null}
+
+            {section.steps && section.steps.length > 0 ? (
+              <div className="mt-5 grid gap-4">
+                {section.steps.map((step) => (
+                  <div
+                    key={step.title}
+                    className="rounded-2xl border border-primary/10 bg-page p-4 sm:p-5"
+                  >
+                    <p className="text-base font-bold text-foreground">{step.title}</p>
+                    {step.body ? (
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {step.body}
+                      </p>
+                    ) : null}
+                    {step.commands && step.commands.length > 0 ? (
+                      <div className="mt-4 grid gap-3">
+                        {step.commands.map((command) => (
+                          <CommandBlock key={command} code={command} />
+                        ))}
+                      </div>
+                    ) : null}
+                    {step.callout ? (
+                      <div className="mt-4">
+                        <DocCalloutCard callout={step.callout} />
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {section.rows && section.rows.length > 0 ? (
+              <div className="mt-5 overflow-hidden rounded-2xl border border-primary/10">
+                {section.rows.map((row, rowIndex) => (
+                  <div
+                    key={row.term}
+                    className={`grid gap-1 px-4 py-4 sm:grid-cols-[0.42fr_1fr] sm:gap-4 ${
+                      rowIndex > 0 ? "border-t border-primary/10" : ""
+                    }`}
+                  >
+                    <span className="font-bold text-foreground">{row.term}</span>
+                    <span className="text-sm leading-6 text-muted-foreground">
+                      {row.detail}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {section.callout ? (
+              <div className="mt-5">
+                <DocCalloutCard callout={section.callout} />
+              </div>
+            ) : null}
+            {section.callouts && section.callouts.length > 0 ? (
+              <div className="mt-5 grid gap-3">
+                {section.callouts.map((callout) => (
+                  <DocCalloutCard key={callout.body} callout={callout} />
+                ))}
+              </div>
+            ) : null}
+          </motion.article>
+        ))}
+      </div>
+
+      {doc.links && doc.links.length > 0 ? (
+        <div className="mt-8 flex flex-wrap gap-3">
+          {doc.links.map((link) => (
+            <Button
+              key={link.href}
+              asChild
+              variant="outline"
+              className="rounded-xl bg-white"
+            >
+              <a
+                href={link.href}
+                {...(link.external
+                  ? { target: "_blank", rel: "noreferrer noopener" }
+                  : {})}
+              >
+                {link.label}
+                {link.external ? (
+                  <ExternalLink data-icon="inline-end" />
+                ) : (
+                  <ArrowRight data-icon="inline-end" />
+                )}
+              </a>
+            </Button>
+          ))}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -3307,13 +4015,15 @@ function ProductShowcase({
   pointer: PointerMotion;
   reducedMotion: boolean | null;
 }) {
-  const content = {
-    quickstart: <QuickstartShowcase reducedMotion={reducedMotion} />,
-    cli: <CliShowcase reducedMotion={reducedMotion} />,
-    "control-plane": <ControlPlaneShowcase reducedMotion={reducedMotion} />,
-    compatibility: <CompatibilityShowcase reducedMotion={reducedMotion} />,
-    operator: <OperatorShowcase reducedMotion={reducedMotion} />,
-  }[pageKey];
+  const content = (
+    {
+      quickstart: <QuickstartShowcase reducedMotion={reducedMotion} />,
+      cli: <CliShowcase reducedMotion={reducedMotion} />,
+      "control-plane": <ControlPlaneShowcase reducedMotion={reducedMotion} />,
+      compatibility: <CompatibilityShowcase reducedMotion={reducedMotion} />,
+      operator: <OperatorShowcase reducedMotion={reducedMotion} />,
+    } as Partial<Record<ProductPageKey, ReactNode>>
+  )[pageKey];
 
   return (
     <motion.div
@@ -3804,33 +4514,39 @@ function ProductDetails({
   pageKey: ProductPageKey;
   reducedMotion: boolean | null;
 }) {
-  const panels = {
-    quickstart: [
-      ["Register", "Attach the shipped AAB to a stable release ID before any patch exists."],
-      ["Publish", "Upload only eligible asset/config OTA artifacts after the base and manifest pass."],
-      ["Operate", "Watch the rollout cohort before increasing exposure."],
-    ],
-    cli: [
-      ["Readable commands", "Each command maps to one release concept: base, patch, publish, rollback."],
-      ["Local proof", "The CLI prints the compatibility decision before upload."],
-      ["Dashboard handoff", "Every CLI action leaves an operator trail."],
-    ],
-    "control-plane": [
-      ["Artifact routing", "Signed files move through hosted storage instead of bloating the store build."],
-      ["Cohort gates", "Rollout percentage and channel decisions live server-side."],
-      ["Health loop", "Client acceptance decides whether the patch expands."],
-    ],
-    compatibility: [
-      ["Allowed path", "Flutter assets, config, manifests, and eligible patch bundles can move OTA."],
-      ["Blocked path", "Runtime drift and native changes are pushed back to the store release process."],
-      ["Audit path", "Every decision is visible before the patch reaches users."],
-    ],
-    operator: [
-      ["Release stream", "Operators see what the patch is doing now instead of reading a static status."],
-      ["Rollback lane", "Recovery stays visible while the rollout is still small."],
-      ["Team surface", "The product feels like a SaaS dashboard, not a pile of scripts."],
-    ],
-  }[pageKey];
+  const panels = (
+    {
+      quickstart: [
+        ["Register", "Attach the shipped AAB to a stable release ID before any patch exists."],
+        ["Publish", "Upload only eligible asset/config OTA artifacts after the base and manifest pass."],
+        ["Operate", "Watch the rollout cohort before increasing exposure."],
+      ],
+      cli: [
+        ["Readable commands", "Each command maps to one release concept: base, patch, publish, rollback."],
+        ["Local proof", "The CLI prints the compatibility decision before upload."],
+        ["Dashboard handoff", "Every CLI action leaves an operator trail."],
+      ],
+      "control-plane": [
+        ["Artifact routing", "Signed files move through hosted storage instead of bloating the store build."],
+        ["Cohort gates", "Rollout percentage and channel decisions live server-side."],
+        ["Health loop", "Client acceptance decides whether the patch expands."],
+      ],
+      compatibility: [
+        ["Allowed path", "Flutter assets, config, manifests, and eligible patch bundles can move OTA on the public-alpha asset/config lane."],
+        ["Blocked path", "Runtime drift is blocked. Code and engine changes use the separate experimental hard-OTA tier, not this asset/config lane."],
+        ["Audit path", "Every decision is visible before the patch reaches users."],
+      ],
+      operator: [
+        ["Release stream", "Operators see what the patch is doing now instead of reading a static status."],
+        ["Rollback lane", "Recovery stays visible while the rollout is still small."],
+        ["Team surface", "The product feels like a SaaS dashboard, not a pile of scripts."],
+      ],
+    } as Partial<Record<ProductPageKey, [string, string][]>>
+  )[pageKey];
+
+  if (!panels) {
+    return null;
+  }
 
   return (
     <section className="mx-auto max-w-[1420px] px-5 pb-20 sm:px-8">
@@ -4019,6 +4735,72 @@ function SiteHeader({ activePath }: { activePath?: string } = {}) {
   );
 }
 
+const productStatusRows = [
+  {
+    icon: Smartphone,
+    platform: "Android hard OTA",
+    state: "Fresh-user proven",
+    detail:
+      "Base to code patch to rollback demonstrated end to end on an emulator with a fresh user. Public-alpha, experimental tier.",
+    tone: "bg-success text-primary",
+  },
+  {
+    icon: Apple,
+    platform: "iOS hard OTA",
+    state: "Device proven",
+    detail:
+      "Fresh-user engine patch and rollback demonstrated on a physical iPhone. Experimental tier, physical device only, Apple signing required.",
+    tone: "bg-success text-primary",
+  },
+] as const;
+
+function ProductStatus() {
+  return (
+    <div className="rounded-[1.75rem] border border-primary/10 bg-card p-7 shadow-card sm:p-10 lg:p-12">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+        <SectionIntro
+          eyebrow="Product status"
+          title="Experimental hard-OTA tier, proven with fresh users."
+          body="Soroq delivers hard OTA updates today as an experimental tier. This is not an App Store or Play production approval, and it is not a claim of parity with any other OTA product."
+        />
+        <Badge variant="outline" className="w-fit bg-white">
+          Experimental hard-OTA tier
+        </Badge>
+      </div>
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        {productStatusRows.map((row) => {
+          const Icon = row.icon;
+          return (
+            <div
+              key={row.platform}
+              className="rounded-2xl border border-primary/10 bg-white p-5 shadow-soft"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2.5 text-lg font-bold text-foreground">
+                  <Icon className="size-5 text-coral" />
+                  {row.platform}
+                </span>
+                <span className={`rounded-full px-3 py-1 text-xs font-bold ${row.tone}`}>
+                  {row.state}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{row.detail}</p>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-5 flex gap-3 rounded-2xl border border-coral/25 bg-coral/[0.07] p-4">
+        <AlertCircle className="mt-0.5 size-5 shrink-0 text-coral" />
+        <p className="text-sm leading-6 text-muted-foreground">
+          No App Store or Play production approval is claimed. Hard OTA is an experimental
+          tier; use it for testing and controlled rollouts, not as a substitute for store
+          review.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function HeroCopy({ shouldReduceMotion }: { shouldReduceMotion: boolean | null }) {
   return (
     <motion.div
@@ -4042,14 +4824,30 @@ function HeroCopy({ shouldReduceMotion }: { shouldReduceMotion: boolean | null }
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button asChild size="lg" className="h-12 rounded-xl px-6">
-          <a href="/quickstart.html">
-            Start free alpha
+          <a href="/cli">
+            Install Soroq
             <ArrowRight data-icon="inline-end" />
           </a>
         </Button>
         <Button asChild size="lg" variant="outline" className="h-12 rounded-xl bg-white px-6">
-          <a href="#workflow">See how it works</a>
+          <a href="/getting-started">Read the docs</a>
         </Button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <a
+          href="/android-quickstart"
+          className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-primary/10 bg-white/70 px-3 py-2 text-sm font-medium text-foreground shadow-soft transition-colors hover:bg-accent"
+        >
+          <Smartphone className="size-4 text-coral" />
+          Android quickstart
+        </a>
+        <a
+          href="/ios-quickstart"
+          className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-primary/10 bg-white/70 px-3 py-2 text-sm font-medium text-foreground shadow-soft transition-colors hover:bg-accent"
+        >
+          <Apple className="size-4 text-coral" />
+          iOS quickstart
+        </a>
       </div>
       <MobileProductCard reducedMotion={shouldReduceMotion} />
       <div className="hidden max-w-xl grid-cols-1 gap-2 sm:grid sm:grid-cols-3">

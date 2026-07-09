@@ -28,6 +28,13 @@ export default defineConfig({
         compatibility: path.resolve(__dirname, "website/compatibility.html"),
         operator: path.resolve(__dirname, "website/operator.html"),
         "cli-login": path.resolve(__dirname, "website/cli-login.html"),
+        "getting-started": path.resolve(__dirname, "website/getting-started.html"),
+        "android-quickstart": path.resolve(
+          __dirname,
+          "website/android-quickstart.html",
+        ),
+        "ios-quickstart": path.resolve(__dirname, "website/ios-quickstart.html"),
+        troubleshooting: path.resolve(__dirname, "website/troubleshooting.html"),
       },
     },
   },

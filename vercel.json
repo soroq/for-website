@@ -23,6 +23,22 @@
       "destination": "/cli.html"
     },
     {
+      "source": "/getting-started",
+      "destination": "/getting-started.html"
+    },
+    {
+      "source": "/android-quickstart",
+      "destination": "/android-quickstart.html"
+    },
+    {
+      "source": "/ios-quickstart",
+      "destination": "/ios-quickstart.html"
+    },
+    {
+      "source": "/troubleshooting",
+      "destination": "/troubleshooting.html"
+    },
+    {
       "source": "/control-plane",
       "destination": "/control-plane.html"
     },
