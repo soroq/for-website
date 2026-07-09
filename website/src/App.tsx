@@ -446,7 +446,7 @@ const productPages: ProductPageConfig[] = [
 
 const publicInstallCommand = `curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/soroq/install/main/install.sh -sSf | bash
 export PATH="$HOME/.soroq/bin:$PATH"
-soroq version   # -> soroq v0.2.0`;
+soroq version   # -> soroq v0.2.1`;
 
 type DocTone = "info" | "warn" | "success";
 
@@ -486,7 +486,7 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
     sections: [
       {
         heading: "1. Install the Soroq CLI",
-        intro: "macOS only for the beta. This installs both soroq and soroqctl.",
+        intro: "macOS and Linux for the beta. This installs both soroq and soroqctl.",
         commands: [publicInstallCommand],
         callouts: [
           {
@@ -541,12 +541,12 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
       {
         heading: "Install on macOS",
         intro:
-          "Run the public installer, add the bin directory to your PATH, and check the version. Apple Silicon and Intel are both supported; install.sh auto-detects your architecture.",
+          "Run the public installer, add the bin directory to your PATH, and check the version. macOS (Apple Silicon + Intel) and Linux (amd64 + arm64) are supported; install.sh auto-detects OS + architecture.",
         commands: [publicInstallCommand],
         callouts: [
           {
             tone: "warn",
-            body: "macOS only for the beta. Linux and Windows are pending.",
+            body: "macOS (Apple Silicon + Intel) and Linux (amd64 + arm64) are supported and smoke-tested. Windows is pending; source-build of the full CLI is pending.",
           },
         ],
       },
@@ -566,7 +566,7 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
       },
       {
         heading: "Confirm the version",
-        commands: ["soroq version   # -> soroq v0.2.0"],
+        commands: ["soroq version   # -> soroq v0.2.1"],
       },
     ],
     links: [
@@ -576,8 +576,8 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
         external: true,
       },
       {
-        label: "Release v0.2.0 (downloads + checksums.txt)",
-        href: "https://github.com/soroq/install/releases/tag/v0.2.0",
+        label: "Release v0.2.1 (downloads + checksums.txt)",
+        href: "https://github.com/soroq/install/releases/tag/v0.2.1",
         external: true,
       },
       { label: "Getting started", href: "/getting-started" },
