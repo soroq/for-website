@@ -1,6 +1,54 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/quickstart.html", "destination": "/quickstart", "permanent": true },
+    { "source": "/cli.html", "destination": "/cli", "permanent": true },
+    { "source": "/control-plane.html", "destination": "/control-plane", "permanent": true },
+    { "source": "/compatibility.html", "destination": "/compatibility", "permanent": true },
+    { "source": "/operator.html", "destination": "/operator", "permanent": true },
+    { "source": "/getting-started.html", "destination": "/getting-started", "permanent": true },
+    { "source": "/android-quickstart.html", "destination": "/android-quickstart", "permanent": true },
+    { "source": "/ios-quickstart.html", "destination": "/ios-quickstart", "permanent": true },
+    { "source": "/troubleshooting.html", "destination": "/troubleshooting", "permanent": true },
+    {
+      "source": "/docs",
+      "has": [{ "type": "host", "value": "soroq.dev" }],
+      "destination": "https://docs.soroq.dev/",
+      "permanent": true
+    },
+    {
+      "source": "/docs/:path*",
+      "has": [{ "type": "host", "value": "soroq.dev" }],
+      "destination": "https://docs.soroq.dev/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/quickstart",
+      "has": [{ "type": "host", "value": "docs.soroq.dev" }],
+      "destination": "https://soroq.dev/quickstart",
+      "permanent": true
+    },
+    {
+      "source": "/control-plane",
+      "has": [{ "type": "host", "value": "docs.soroq.dev" }],
+      "destination": "https://soroq.dev/control-plane",
+      "permanent": true
+    },
+    {
+      "source": "/compatibility",
+      "has": [{ "type": "host", "value": "docs.soroq.dev" }],
+      "destination": "https://soroq.dev/compatibility",
+      "permanent": true
+    },
+    {
+      "source": "/operator",
+      "has": [{ "type": "host", "value": "docs.soroq.dev" }],
+      "destination": "https://soroq.dev/operator",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/operator/healthz",

@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SoroqMark } from "@/components/SoroqMark";
 import { CommandBlock } from "@/shared/primitives";
 import type { ProductPageConfig, ProductPageKey } from "@/shared/pageTypes";
 
@@ -418,6 +419,101 @@ export const docPages: Partial<Record<ProductPageKey, DocPage>> = {
   },
 };
 
+
+// Minimal docs landing served at the ROOT of the docs host (docs.soroq.dev/).
+// It is intentionally a thin index over the existing docs pages until the real
+// docs-home IA slice lands; it does NOT rebuild the full information
+// architecture here. The logo links back to the docs home ("/"), and a "Soroq
+// website" link points back to the marketing site.
+const docsHomeLinks: { label: string; href: string; blurb: string }[] = [
+  {
+    label: "Getting started",
+    href: "/getting-started",
+    blurb: "Install the CLI, add the frontend and toolchains, run doctor, then log in only to publish.",
+  },
+  {
+    label: "CLI",
+    href: "/cli",
+    blurb: "Install on macOS or Linux, build from source, verify the download, and run soroq and soroqctl.",
+  },
+  {
+    label: "Android quickstart",
+    href: "/android-quickstart",
+    blurb: "Take a stock Flutter APK to a signed code patch at full rollout, then roll it back.",
+  },
+  {
+    label: "iOS quickstart",
+    href: "/ios-quickstart",
+    blurb: "Patch a running Flutter engine on a physical iPhone, then roll back. Experimental tier.",
+  },
+  {
+    label: "Troubleshooting",
+    href: "/troubleshooting",
+    blurb: "Fix the errors you are most likely to hit: install, login, stale status, and fail-closed signatures.",
+  },
+];
+
+export function DocsHome() {
+  return (
+    <div className="min-h-screen bg-page">
+      <header className="px-5 pt-5 sm:px-8">
+        <div className="mx-auto flex min-h-14 max-w-[1420px] items-center justify-between gap-4 rounded-xl bg-white/85 px-4 shadow-soft ring-1 ring-primary/8 backdrop-blur-xl sm:px-6">
+          <a
+            className="focus-ring flex min-w-0 items-center gap-3 rounded-lg"
+            href="/"
+            aria-label="Soroq docs home"
+          >
+            <SoroqMark />
+            <span className="truncate text-xl font-bold tracking-normal">
+              Soroq Docs
+            </span>
+          </a>
+          <Button asChild variant="outline" className="bg-white">
+            <a href="https://soroq.dev">
+              Soroq website
+              <ExternalLink data-icon="inline-end" />
+            </a>
+          </Button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-[1420px] px-5 pb-20 pt-12 sm:px-8">
+        <p className="font-mono text-xs uppercase text-muted-foreground">
+          Documentation
+        </p>
+        <h1 className="mt-3 max-w-3xl text-4xl font-bold leading-[1.05] text-foreground sm:text-6xl">
+          Everything you need to ship a hard OTA patch.
+        </h1>
+        <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
+          Start with the CLI install and getting-started flow, then run a full
+          base to patch to rollback cycle on Android or iOS.
+        </p>
+
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {docsHomeLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="focus-ring group flex flex-col rounded-[1.35rem] border border-primary/10 bg-white p-6 shadow-card transition-colors hover:bg-accent"
+            >
+              <span className="flex items-center gap-2 text-lg font-bold text-foreground">
+                <ListChecks className="size-5 text-coral" />
+                {link.label}
+              </span>
+              <span className="mt-3 text-sm leading-6 text-muted-foreground">
+                {link.blurb}
+              </span>
+              <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-foreground">
+                Read
+                <ArrowRight className="size-4 text-coral transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </a>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
 
 export const docCalloutTone: Record<DocTone, { wrap: string; icon: string }> = {
   info: { wrap: "border-blueprint/25 bg-blueprint/[0.08]", icon: "text-blueprint" },

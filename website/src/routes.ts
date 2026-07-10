@@ -37,12 +37,25 @@ export const routes: RouteEntry[] = [
 
 export type ResolvedRoute =
   | { kind: "home" }
+  | { kind: "docs-home" }
   | { kind: "product"; page: ProductPageConfig }
   | { kind: "console" };
 
-// Pathname-only resolution, identical to the original App logic.
-// (Hostname branching is intentionally deferred to the P1 routing slice.)
-export function resolveRoute(pathname: string): ResolvedRoute {
+// The docs host. Vercel rewrites clean paths transparently, so on BOTH hosts
+// `window.location.pathname === "/"` at the root — the ONLY way to tell the two
+// experiences apart client-side is the hostname.
+export const DOCS_HOST = "docs.soroq.dev";
+
+export function isDocsHost(hostname?: string): boolean {
+  return hostname === DOCS_HOST;
+}
+
+// Pathname-first resolution, with a load-bearing hostname branch for the root.
+// Known product/docs paths still resolve by pathname on ANY host, so previews
+// like `<preview>.vercel.app/getting-started` keep working. Only the ambiguous
+// root ("/") is disambiguated by hostname: docs host -> docs home, else
+// marketing home.
+export function resolveRoute(pathname: string, hostname?: string): ResolvedRoute {
   const page = productPages.find(
     (candidate) =>
       normalizePath(candidate.path) === normalizePath(pathname) ||
@@ -53,6 +66,10 @@ export function resolveRoute(pathname: string): ResolvedRoute {
     return page.key === "operator"
       ? { kind: "console" }
       : { kind: "product", page };
+  }
+
+  if (isDocsHost(hostname)) {
+    return { kind: "docs-home" };
   }
 
   return { kind: "home" };
