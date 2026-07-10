@@ -38,7 +38,7 @@ const pages: DocPage[] = [
     slug: "getting-started",
     title: "Getting started",
     group: "Start",
-    order: 1,
+    order: 3,
     summary:
       "Install the CLI, pick a platform, install just that toolchain, run doctor, then log in only to publish.",
     status: "experimental",
@@ -210,13 +210,34 @@ flutter pub add soroq_flutter   # soroq_flutter ${PRODUCT.packages.soroqFlutter}
 soroq init --app-id "$SOROQ_APP_ID" --channel "$SOROQ_CHANNEL" --api "$SOROQ_API"`,
         ],
         output: "soroq.yaml written; app registered on the channel",
-        next: "Cut the base release.",
+        next: "Install the frontend and the Android toolchain.",
       },
       {
-        heading: "2. Cut the base release",
-        anchor: "2-cut-the-base-release",
+        heading: "2. Install the frontend and Android toolchain",
+        anchor: "2-install-the-frontend-and-android-toolchain",
         intro:
-          "Register the stock APK as the base the patch will target. Run this from inside my_app.",
+          "Pin the shared frontend and the Android toolchain, then run doctor. These are downloads, not a login — no account is needed yet. Skip this only if doctor already reports both present.",
+        cwd: "~/my_app",
+        commands: [
+          `soroq frontend install ${FRONTEND} --api "$SOROQ_API"
+soroq toolchain install ${ANDROID_TC} --api "$SOROQ_API"
+soroq toolchain doctor`,
+        ],
+        output: "toolchain doctor: frontend + Android toolchain present and consistent",
+        next: "Cut the base release.",
+        callouts: [
+          {
+            tone: "note",
+            title: "Download size",
+            body: "The frontend archive is about 1.06 GiB (1,140,170,246 bytes). Expect an additional toolchain download on first install, so keep some disk headroom.",
+          },
+        ],
+      },
+      {
+        heading: "3. Cut the base release",
+        anchor: "3-cut-the-base-release",
+        intro:
+          "Register the stock APK as the base the patch will target. The stock app shows the default counter value (42). Run this from inside my_app.",
         cwd: "~/my_app",
         commands: [
           `soroq release android \\
@@ -229,8 +250,8 @@ soroq init --app-id "$SOROQ_APP_ID" --channel "$SOROQ_CHANNEL" --api "$SOROQ_API
         next: "Change visible code and publish a patch.",
       },
       {
-        heading: "3. Change visible code and patch",
-        anchor: "3-change-visible-code-and-patch",
+        heading: "4. Change visible code and patch",
+        anchor: "4-change-visible-code-and-patch",
         intro:
           "Edit a lib/ Dart file so a visible value changes (for example a counter that reads 42 -> 91), then publish a code patch at 100% rollout.",
         cwd: "~/my_app",
@@ -243,7 +264,7 @@ soroq init --app-id "$SOROQ_APP_ID" --channel "$SOROQ_CHANNEL" --api "$SOROQ_API
   --kind code --rollout 100`,
         ],
         output: "patch $SOROQ_PATCH_ID published at 100% rollout",
-        next: "Roll back once you have confirmed the patched value on device.",
+        next: "Confirm the patch staged and activated on device.",
         callouts: [
           {
             tone: "staged",
@@ -253,8 +274,23 @@ soroq init --app-id "$SOROQ_APP_ID" --channel "$SOROQ_CHANNEL" --api "$SOROQ_API
         ],
       },
       {
-        heading: "4. Roll back",
-        anchor: "4-roll-back",
+        heading: "5. Confirm the patch status on device",
+        anchor: "5-confirm-the-patch-status-on-device",
+        intro:
+          "Cold-start the app once to stage the patch, then cold-start again to activate it. The visible value flips from 42 to 91 on the second launch. In code, read getAutoUpdateState() after the check completes (not the immediate return of runAutoUpdateNow()) to confirm the patch is staged then active before you move on.",
+        cwd: "~/my_app",
+        output: "auto-update state: patch $SOROQ_PATCH_ID active; app shows value 91",
+        next: "Roll back to the base.",
+        callouts: [
+          {
+            tone: "verified",
+            body: "Once the second cold start shows the patched value, the patch is live at 100% rollout on the channel. That on-device value is the ground-truth status.",
+          },
+        ],
+      },
+      {
+        heading: "6. Roll back",
+        anchor: "6-roll-back",
         intro: "Revert to the base with a server-side rollback and verify it landed.",
         cwd: "~/my_app",
         commands: [`soroq rollback --patch-id "$SOROQ_PATCH_ID" --api "$SOROQ_API" --verify`],
@@ -416,8 +452,13 @@ soroq toolchain install ${IOS_TC} --api "$SOROQ_API"`,
   --channel "$SOROQ_CHANNEL" --api "$SOROQ_API"`,
         ],
         output: "engine patch $SOROQ_PATCH_ID published",
-        next: "Roll back after confirming the patched value on device.",
+        next: "Confirm the patched value on device, then roll back.",
         callouts: [
+          {
+            tone: "staged",
+            title: "Relaunch to activate, then read the status",
+            body: "Cold-start the app on the iPhone to stage the engine patch, then cold-start again to activate it: the device value flips from the base to the patched value. That on-device value is the ground-truth status before you roll back.",
+          },
           {
             tone: "note",
             body: "A patch may only direct-call retained or manifest-listed symbols. Calls into symbols that were stripped are not available to the patch.",
@@ -542,7 +583,7 @@ soroq version   # -> soroq ${PRODUCT.cliVersion}`,
     slug: "troubleshooting",
     title: "Troubleshooting",
     group: "Reference",
-    order: 2,
+    order: 6,
     summary:
       "Fix the errors you are most likely to hit: install, login, stale status, and fail-closed signatures.",
     metadata: {
@@ -640,6 +681,484 @@ soroq version   # -> soroq ${PRODUCT.cliVersion}`,
     related: [
       { label: "Getting started", slug: "getting-started" },
       { label: "Install the CLI", slug: "cli" },
+      { label: "Android quickstart", slug: "android-quickstart" },
+      { label: "iOS quickstart", slug: "ios-quickstart" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- what-is-soroq
+  {
+    slug: "what-is-soroq",
+    title: "What is Soroq",
+    group: "Start",
+    order: 1,
+    status: "experimental",
+    summary:
+      "A release-control layer that delivers hard over-the-air patches to eligible Flutter code, assets, and the iOS engine — not native or store-level changes.",
+    metadata: {
+      role: "Concept",
+      updates: "Eligible Flutter code/assets + iOS engine",
+      tier: "Experimental",
+    },
+    sections: [
+      {
+        heading: "What Soroq is",
+        anchor: "what-soroq-is",
+        intro:
+          "Soroq is a release-control layer for Flutter apps. You cut a signed base release, ship a hard over-the-air patch against it, watch the patch stage and activate on a cold start, and roll back on demand. On Android it delivers a code patch; on iOS it patches the running Flutter engine. Installs and doctor need no account — only publishing a release or patch requires a login.",
+        callouts: [
+          {
+            tone: "experimental",
+            title: "Experimental on both platforms",
+            body: `Android is ${PRODUCT.tiers.android}. iOS is ${PRODUCT.tiers.ios}. macOS and Linux are supported for the CLI; Windows is pending.`,
+          },
+        ],
+      },
+      {
+        heading: "What it updates",
+        anchor: "what-it-updates",
+        intro:
+          "A patch replaces eligible application content built against a specific base release and runtime.",
+        rows: [
+          { term: "Android", detail: "Eligible Flutter/Dart code and bundled assets, delivered as a code patch against a base APK release." },
+          { term: "iOS", detail: "The running Flutter engine: functions you declare as patchable under ios_engine, against a signed base engine release." },
+          { term: "Always signed", detail: "Every patch is delivered under a signed manifest and is version- and runtime-specific to the base it targets." },
+        ],
+      },
+      {
+        heading: "What it does not touch",
+        anchor: "what-it-does-not-touch",
+        intro:
+          "Soroq does not replace the platform release process. It does not update native (Kotlin/Swift/Objective-C) code, embedded native libraries, app entitlements, or anything that requires a new store submission. It is not a store-distribution channel.",
+        callouts: [
+          {
+            tone: "note",
+            body: "A version bump or any native change still needs a fresh base release cut with the toolchain, and a new patch built against that base.",
+          },
+        ],
+      },
+    ],
+    related: [
+      { label: "Before you begin", slug: "before-you-begin" },
+      { label: "Getting started", slug: "getting-started" },
+      { label: "Compatibility & limitations", slug: "compatibility-limitations" },
+      { label: "Product status", slug: "product-status" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- before-you-begin
+  {
+    slug: "before-you-begin",
+    title: "Before you begin",
+    group: "Start",
+    order: 2,
+    status: "experimental",
+    summary:
+      "Prerequisites: Flutter, a pub.dev-published app, macOS or Linux for the CLI, and — for iOS — a physical iPhone with Apple signing.",
+    metadata: {
+      cli: "macOS or Linux (Windows pending)",
+      ios: "Physical iPhone + macOS/Xcode + Apple signing",
+      disk: "~1.06 GiB for the frontend",
+    },
+    sections: [
+      {
+        heading: "For every platform",
+        anchor: "for-every-platform",
+        intro:
+          "You need a working Flutter toolchain, a Flutter app that pulls in soroq_flutter from pub.dev, and a machine that can run the Soroq CLI.",
+        rows: [
+          { term: "Flutter", detail: "A current stable Flutter SDK on your PATH (flutter --version works)." },
+          { term: "A pub.dev app", detail: `A Flutter app that depends on soroq_flutter (${PRODUCT.packages.soroqFlutter}) from pub.dev — add it with flutter pub add soroq_flutter.` },
+          { term: "CLI host", detail: "macOS or Linux to run the soroq CLI. Windows is pending; building from source is supported on macOS and Linux." },
+          { term: "Disk", detail: "Room for the shared frontend archive: about 1.06 GiB (1,140,170,246 bytes), plus a per-platform toolchain download." },
+        ],
+      },
+      {
+        heading: "Additional requirements for iOS",
+        anchor: "additional-requirements-for-ios",
+        intro:
+          "iOS hard OTA is experimental and physical-device only. It does not run on the simulator.",
+        callouts: [
+          {
+            tone: "device",
+            title: "iOS is device-only",
+            body: "You need a physical iPhone, macOS with Xcode, and Apple code signing set up to install and run on device. The simulator is not supported.",
+          },
+        ],
+      },
+    ],
+    related: [
+      { label: "What is Soroq", slug: "what-is-soroq" },
+      { label: "Installation", slug: "installation" },
+      { label: "Getting started", slug: "getting-started" },
+      { label: "iOS quickstart", slug: "ios-quickstart" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- installation
+  {
+    slug: "installation",
+    title: "Installation",
+    group: "Start",
+    order: 4,
+    status: "experimental",
+    summary:
+      "Install the CLI, pin the shared frontend, add the platform toolchain you need, or build the CLI from source. Windows is pending.",
+    metadata: {
+      cli: PRODUCT.cliVersion,
+      frontend: "~1.06 GiB archive",
+      platforms: "macOS + Linux (Windows pending)",
+    },
+    sections: [
+      {
+        heading: "1. Install the CLI",
+        anchor: "1-install-the-cli",
+        intro:
+          "Run the public installer, add the bin directory to your PATH, and confirm the version. This installs both soroq and soroqctl. No login required.",
+        cwd: "~",
+        commands: [installCommand],
+        output: `soroq ${PRODUCT.cliVersion}`,
+        next: "Install the shared frontend.",
+      },
+      {
+        heading: "2. Install the frontend",
+        anchor: "2-install-the-frontend",
+        intro:
+          "Pin the shared Flutter frontend both platforms build against. This is a one-time download of about 1.06 GiB.",
+        cwd: "~",
+        commands: [`soroq frontend install ${FRONTEND} --api ${API}`],
+        output: "frontend installed",
+        next: "Install the toolchain for your platform.",
+        callouts: [
+          {
+            tone: "note",
+            title: "Download size",
+            body: "The frontend archive is about 1.06 GiB (1,140,170,246 bytes, measured from its /archive endpoint). Toolchain archive sizes are not published, so expect an extra download on first toolchain install.",
+          },
+        ],
+      },
+      {
+        heading: "3. Install a platform toolchain",
+        anchor: "3-install-a-platform-toolchain",
+        intro:
+          "Install only the toolchain for the platform you are shipping, then run doctor to confirm the frontend and toolchain are consistent.",
+        cwd: "~",
+        codeTabs: [
+          {
+            platform: "android",
+            label: "Android",
+            code: `soroq toolchain install ${ANDROID_TC} --api ${API}
+soroq toolchain doctor`,
+          },
+          {
+            platform: "ios",
+            label: "iOS",
+            code: `soroq toolchain install ${IOS_TC} --api ${API}
+soroq toolchain doctor`,
+          },
+        ],
+        output: "toolchain doctor: frontend + toolchain present and consistent",
+        next: "Optionally build the CLI from source.",
+      },
+      {
+        heading: "Build from source",
+        anchor: "build-from-source",
+        intro:
+          "backend/ is the public CLI source. Clone it and build — no private module, private Git dependency, or local path is required.",
+        cwd: "~",
+        commands: [
+          `git clone ${PRODUCT.installRepo}
+cd install/backend
+make build        # stamps ./VERSION -> ./soroq + ./soroqctl
+./soroq version   # -> soroq ${PRODUCT.cliVersion}`,
+        ],
+        output: `soroq ${PRODUCT.cliVersion}`,
+        callouts: [
+          {
+            tone: "note",
+            title: "Windows is pending",
+            body: "install.sh does not offer Windows and install.ps1 stays gated behind an explicit opt-in. Building from source is supported on macOS and Linux; Windows becomes supported only after the acceptance gates pass.",
+          },
+        ],
+      },
+    ],
+    related: [
+      { label: "Before you begin", slug: "before-you-begin" },
+      { label: "Authentication", slug: "authentication" },
+      { label: "CLI reference", slug: "cli" },
+      { label: "Getting started", slug: "getting-started" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- authentication
+  {
+    slug: "authentication",
+    title: "Authentication",
+    group: "Start",
+    order: 5,
+    status: "experimental",
+    summary:
+      "Log in through the browser only when you are ready to publish. Tokens live in the OS keychain, or a mode-0600 file when no keychain is available.",
+    metadata: {
+      when: "Only to publish a release or patch",
+      commands: "login, whoami, logout",
+      storage: "Keychain or ~/.soroq/config.json (0600)",
+    },
+    sections: [
+      {
+        heading: "When you need to log in",
+        anchor: "when-you-need-to-log-in",
+        intro:
+          "Installs and doctor never ask for an account. You only authenticate immediately before you publish a release or a patch. Logging in opens the hosted surface in your browser and returns an operator identity to the CLI.",
+        callouts: [
+          {
+            tone: "note",
+            body: "Browser login is the primary path. Do not wire a raw operator token into your environment as the normal way to authenticate — use soroq login.",
+          },
+        ],
+      },
+      {
+        heading: "Log in, check identity, log out",
+        anchor: "log-in-check-identity-log-out",
+        cwd: "~",
+        commands: [
+          `soroq login --hosted-surface ${PRODUCT.hostedLoginUrl} --api ${API}
+soroq whoami --api ${API}
+soroq logout`,
+        ],
+        output: "logged in as <your-operator-email>",
+      },
+      {
+        heading: "Where the token is stored",
+        anchor: "where-the-token-is-stored",
+        intro:
+          "The CLI prefers the operating system keychain. On a fresh or sandboxed HOME where no keychain is available, it falls back to a plain file at mode 0600.",
+        rows: [
+          { term: "Keychain", detail: "The default and preferred store when the OS keychain is reachable." },
+          { term: "0600 file fallback", detail: "~/.soroq/config.json at mode 0600 when the keychain is unavailable. Verify either way with soroq whoami." },
+        ],
+      },
+    ],
+    related: [
+      { label: "Installation", slug: "installation" },
+      { label: "Getting started", slug: "getting-started" },
+      { label: "Security model", slug: "security-model" },
+      { label: "Troubleshooting", slug: "troubleshooting" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- soroq-yaml-reference
+  {
+    slug: "soroq-yaml-reference",
+    title: "soroq.yaml reference",
+    group: "Reference",
+    order: 2,
+    status: "experimental",
+    summary:
+      "The keys soroq init writes and the ones you edit: app_id, channel, the ios_engine block, and the auto-scaffolded manifest_trust.",
+    metadata: {
+      written_by: "soroq init",
+      keys: "app_id, channel, ios_engine, manifest_trust",
+      location: "Project root",
+    },
+    sections: [
+      {
+        heading: "Keys",
+        anchor: "keys",
+        intro:
+          "soroq init writes soroq.yaml at your project root. These are the keys it uses.",
+        rows: [
+          { term: "app_id", detail: "The stable identifier you pick for the app, reused across every release and patch (e.g. com.example.my_app)." },
+          { term: "channel", detail: "The release channel devices subscribe to, e.g. stable or beta." },
+          { term: "ios_engine.enabled", detail: "Set true to enable iOS engine patching for this app." },
+          { term: "ios_engine.patchable", detail: "The list of functions the engine may patch, each in lib/<file>.dart#<function> form." },
+          { term: "manifest_trust", detail: "Auto-scaffolded signing trust. soroq writes only the public key here; the private seed is stored separately at mode 0600 and gitignored." },
+        ],
+      },
+      {
+        heading: "Example",
+        anchor: "example",
+        intro:
+          "A minimal soroq.yaml for an app that ships iOS engine patches. manifest_trust is generated for you — you never paste in a private seed.",
+        cwd: "~/my_app",
+        commands: [
+          `app_id: "com.example.my_app"
+channel: "stable"
+ios_engine:
+  enabled: true
+  patchable:
+    - "lib/foo.dart#myFn"
+manifest_trust:
+  public_key: "<auto-scaffolded public key>"`,
+        ],
+        callouts: [
+          {
+            tone: "note",
+            title: "manifest_trust is generated",
+            body: "You do not set manifest_trust by hand. Soroq scaffolds it: only the public key lands in the project; the private seed stays at mode 0600 and gitignored.",
+          },
+        ],
+      },
+    ],
+    related: [
+      { label: "iOS quickstart", slug: "ios-quickstart" },
+      { label: "Security model", slug: "security-model" },
+      { label: "Compatibility & limitations", slug: "compatibility-limitations" },
+      { label: "CLI reference", slug: "cli" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- compatibility-limitations
+  {
+    slug: "compatibility-limitations",
+    title: "Compatibility & limitations",
+    group: "Reference",
+    order: 3,
+    status: "experimental",
+    summary:
+      "What is eligible for a patch versus what is blocked, the experimental boundaries, and the platform support matrix.",
+    metadata: {
+      cli: "macOS + Linux (Windows pending)",
+      android: "OTA experimental",
+      ios: "OTA experimental, device-only",
+    },
+    sections: [
+      {
+        heading: "Eligible vs blocked",
+        anchor: "eligible-vs-blocked",
+        intro:
+          "A patch may only change content built against the base release it targets.",
+        rows: [
+          { term: "Eligible", detail: "Android: eligible Flutter/Dart code and bundled assets. iOS: engine functions you declare under ios_engine.patchable." },
+          { term: "Blocked", detail: "Native code (Kotlin/Swift/Objective-C), embedded native libraries, entitlements, and anything that needs a new store submission." },
+          { term: "iOS symbol rule", detail: "An iOS engine patch may only direct-call retained or manifest-listed symbols; calls into stripped (tree-shaken) symbols are not available to the patch." },
+          { term: "Version-specific", detail: "Patches are version- and runtime-specific. A version bump needs a new base release and a new patch built against it." },
+        ],
+      },
+      {
+        heading: "Platform support matrix",
+        anchor: "platform-support-matrix",
+        rows: [
+          { term: "CLI: macOS", detail: "Supported." },
+          { term: "CLI: Linux", detail: "Supported (natively validated in CI, not emulated)." },
+          { term: "CLI: Windows", detail: "Pending — gated behind an explicit opt-in until the acceptance gates pass." },
+          { term: "Android OTA", detail: `${PRODUCT.tiers.android}.` },
+          { term: "iOS OTA", detail: `${PRODUCT.tiers.ios}. The simulator is not supported.` },
+        ],
+      },
+      {
+        heading: "Experimental boundaries",
+        anchor: "experimental-boundaries",
+        callouts: [
+          {
+            tone: "experimental",
+            title: "Both platforms are experimental",
+            body: "Treat hard OTA as an experimental capability. iOS runs on a physical device only, and Apple signing is required to install and run on device.",
+          },
+        ],
+      },
+    ],
+    related: [
+      { label: "What is Soroq", slug: "what-is-soroq" },
+      { label: "Security model", slug: "security-model" },
+      { label: "Product status", slug: "product-status" },
+      { label: "Troubleshooting", slug: "troubleshooting" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- security-model
+  {
+    slug: "security-model",
+    title: "Security model",
+    group: "Reference",
+    order: 4,
+    status: "experimental",
+    summary:
+      "Every patch ships under a signed manifest verified against a pinned Ed25519 key. A bad signature is refused fail-closed, patches must match their base, and rollback is always available.",
+    metadata: {
+      signing: "Ed25519 signed manifests",
+      failure: "Fail-closed on bad signature",
+      recovery: "Server-side rollback",
+    },
+    sections: [
+      {
+        heading: "Signed manifests and Ed25519 trust",
+        anchor: "signed-manifests-and-ed25519-trust",
+        intro:
+          "Every release and patch is delivered under a manifest signed with an Ed25519 keypair. The public key is scaffolded into your project as manifest_trust; the private seed is stored at mode 0600 and gitignored. The device verifies the manifest signature against the pinned public key before it will apply anything.",
+      },
+      {
+        heading: "Fail-closed on a bad signature",
+        anchor: "fail-closed-on-a-bad-signature",
+        intro:
+          "If the manifest signature does not verify, the patch is refused and NOT applied. There is no soft-fail path.",
+        callouts: [
+          {
+            tone: "rollback",
+            title: "Tamper is refused",
+            body: "A tampered patch fails verification (sig=FAIL) and is rejected fail-closed. The app keeps running its current trusted code; rebuild and re-sign from a trusted manifest to recover.",
+          },
+        ],
+      },
+      {
+        heading: "Base-match and rollback",
+        anchor: "base-match-and-rollback",
+        rows: [
+          { term: "Base match", detail: "A patch is version- and runtime-specific and only applies against the exact base release it was built for. A mismatch is not applied." },
+          { term: "Rollback", detail: "Rollback is a server-side decision; the next cold start serves the base. Use --verify to confirm it landed." },
+        ],
+      },
+    ],
+    related: [
+      { label: "soroq.yaml reference", slug: "soroq-yaml-reference" },
+      { label: "Compatibility & limitations", slug: "compatibility-limitations" },
+      { label: "Authentication", slug: "authentication" },
+      { label: "Troubleshooting", slug: "troubleshooting" },
+    ],
+  },
+
+  // ---------------------------------------------------------------- product-status
+  {
+    slug: "product-status",
+    title: "Product status",
+    group: "Reference",
+    order: 5,
+    status: "experimental",
+    summary:
+      "The honest state of Soroq: CLI on macOS and Linux, Android fresh-user proven, iOS fresh-user proven on a physical device, all experimental.",
+    metadata: {
+      cli: PRODUCT.cliVersion,
+      android: PRODUCT.tiers.android,
+      ios: PRODUCT.tiers.ios,
+    },
+    sections: [
+      {
+        heading: "Where each piece stands",
+        anchor: "where-each-piece-stands",
+        rows: [
+          { term: "CLI", detail: `soroq ${PRODUCT.cliVersion} on macOS and Linux. Windows is pending. Building from source is supported on macOS and Linux.` },
+          { term: "Android OTA", detail: `${PRODUCT.tiers.android}: the base -> patch -> rollback cycle has been exercised on emulator and device.` },
+          { term: "iOS OTA", detail: `${PRODUCT.tiers.ios}: fresh-user proven on a physical iPhone, including a TestFlight install. The simulator is not supported.` },
+          { term: "Packages", detail: `soroq_flutter ${PRODUCT.packages.soroqFlutter}, soroq_sdk ${PRODUCT.packages.soroqSdk}, from pub.dev.` },
+        ],
+      },
+      {
+        heading: "What we do not claim",
+        anchor: "what-we-do-not-claim",
+        intro:
+          "Soroq does not claim App-Store or Play-Store production readiness, and it does not promise to hot-reload every kind of change. Both platforms are experimental.",
+        callouts: [
+          {
+            tone: "experimental",
+            title: "Experimental, honestly scoped",
+            body: "Hard OTA on Android and iOS is experimental. iOS is device-only and requires Apple signing. Scope your expectations to the proven base -> patch -> rollback cycle.",
+          },
+        ],
+      },
+    ],
+    related: [
+      { label: "What is Soroq", slug: "what-is-soroq" },
+      { label: "Compatibility & limitations", slug: "compatibility-limitations" },
       { label: "Android quickstart", slug: "android-quickstart" },
       { label: "iOS quickstart", slug: "ios-quickstart" },
     ],

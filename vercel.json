@@ -8,7 +8,15 @@
     { "source": "/control-plane.html", "destination": "/control-plane", "permanent": true },
     { "source": "/compatibility.html", "destination": "/compatibility", "permanent": true },
     { "source": "/operator.html", "destination": "/operator", "permanent": true },
+    { "source": "/what-is-soroq.html", "destination": "/what-is-soroq", "permanent": true },
+    { "source": "/before-you-begin.html", "destination": "/before-you-begin", "permanent": true },
     { "source": "/getting-started.html", "destination": "/getting-started", "permanent": true },
+    { "source": "/installation.html", "destination": "/installation", "permanent": true },
+    { "source": "/authentication.html", "destination": "/authentication", "permanent": true },
+    { "source": "/soroq-yaml-reference.html", "destination": "/soroq-yaml-reference", "permanent": true },
+    { "source": "/compatibility-limitations.html", "destination": "/compatibility-limitations", "permanent": true },
+    { "source": "/security-model.html", "destination": "/security-model", "permanent": true },
+    { "source": "/product-status.html", "destination": "/product-status", "permanent": true },
     { "source": "/android-quickstart.html", "destination": "/android-quickstart", "permanent": true },
     { "source": "/ios-quickstart.html", "destination": "/ios-quickstart", "permanent": true },
     { "source": "/troubleshooting.html", "destination": "/troubleshooting", "permanent": true },
@@ -71,8 +79,40 @@
       "destination": "/cli.html"
     },
     {
+      "source": "/what-is-soroq",
+      "destination": "/what-is-soroq.html"
+    },
+    {
+      "source": "/before-you-begin",
+      "destination": "/before-you-begin.html"
+    },
+    {
       "source": "/getting-started",
       "destination": "/getting-started.html"
+    },
+    {
+      "source": "/installation",
+      "destination": "/installation.html"
+    },
+    {
+      "source": "/authentication",
+      "destination": "/authentication.html"
+    },
+    {
+      "source": "/soroq-yaml-reference",
+      "destination": "/soroq-yaml-reference.html"
+    },
+    {
+      "source": "/compatibility-limitations",
+      "destination": "/compatibility-limitations.html"
+    },
+    {
+      "source": "/security-model",
+      "destination": "/security-model.html"
+    },
+    {
+      "source": "/product-status",
+      "destination": "/product-status.html"
     },
     {
       "source": "/android-quickstart",

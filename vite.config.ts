@@ -28,7 +28,21 @@ export default defineConfig({
         compatibility: path.resolve(__dirname, "website/compatibility.html"),
         operator: path.resolve(__dirname, "website/operator.html"),
         "cli-login": path.resolve(__dirname, "website/cli-login.html"),
+        "what-is-soroq": path.resolve(__dirname, "website/what-is-soroq.html"),
+        "before-you-begin": path.resolve(__dirname, "website/before-you-begin.html"),
         "getting-started": path.resolve(__dirname, "website/getting-started.html"),
+        installation: path.resolve(__dirname, "website/installation.html"),
+        authentication: path.resolve(__dirname, "website/authentication.html"),
+        "soroq-yaml-reference": path.resolve(
+          __dirname,
+          "website/soroq-yaml-reference.html",
+        ),
+        "compatibility-limitations": path.resolve(
+          __dirname,
+          "website/compatibility-limitations.html",
+        ),
+        "security-model": path.resolve(__dirname, "website/security-model.html"),
+        "product-status": path.resolve(__dirname, "website/product-status.html"),
         "android-quickstart": path.resolve(
           __dirname,
           "website/android-quickstart.html",
