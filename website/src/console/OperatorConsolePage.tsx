@@ -11,6 +11,7 @@ import {
   ListChecks,
   Loader2,
   LockKeyhole,
+  LogIn,
   PackageCheck,
   RadioTower,
   RefreshCcw,
@@ -21,6 +22,7 @@ import {
   TerminalSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SoroqMark } from "@/components/SoroqMark";
 import { isOperatorRoute } from "@/shared/pageTypes";
 import {
   ConsoleEmpty,
@@ -93,6 +95,16 @@ export function idleState<T>(): ApiState<T> {
 
 export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+export function isAbortError(error: unknown) {
+  // A fetch abort rejects with a DOMException named "AbortError", which is not
+  // reliably a subclass of Error in browsers — match on name, not instanceof.
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
 }
 
 export function extractApiError(payload: unknown) {
@@ -338,6 +350,8 @@ export function OperatorConsolePage() {
     return params.get("patch") || params.get("patch_id") || "";
   });
   const [rollbackConfirm, setRollbackConfirm] = useState("");
+  const [rollbackDialogOpen, setRollbackDialogOpen] = useState(false);
+  const rollbackConfirmButtonRef = useRef<HTMLButtonElement | null>(null);
   const [appSearch, setAppSearch] = useState("");
   const [appListLimit, setAppListLimit] = useState(24);
   const [operatorTab, setOperatorTab] = useState<OperatorTab>("overview");
@@ -351,6 +365,10 @@ export function OperatorConsolePage() {
     }
   });
   const cliLoginDeliveredRef = useRef(false);
+  // Perf: cancel stale in-flight requests when the operator rapidly switches
+  // app/release/patch scope so only the latest request resolves into state.
+  const inventoryAbortRef = useRef<AbortController | null>(null);
+  const patchHealthAbortRef = useRef<AbortController | null>(null);
   const cliLoginParams = new URLSearchParams(window.location.search);
   const cliLoginCallback = cliLoginParams.get("cli_login_callback") || "";
   const cliLoginState = cliLoginParams.get("cli_login_state") || "";
@@ -383,6 +401,13 @@ export function OperatorConsolePage() {
     patchesState.status === "loading";
   const inventoryError =
     appsState.error || releasesState.error || patchesState.error || null;
+  const inventoryReceivedAt =
+    appsState.receivedAt || releasesState.receivedAt || patchesState.receivedAt;
+  const inventoryStale = Boolean(
+    !inventoryLoading &&
+      inventoryReceivedAt &&
+      Date.now() - Date.parse(inventoryReceivedAt) > 120000,
+  );
   const recentClients = collectRecentClients(patchRecord);
   const selectedPatchRecord =
     patchRecords.find((patch) => recordId(patch) === patchId.trim()) ?? null;
@@ -831,6 +856,23 @@ export function OperatorConsolePage() {
   const localPreviewNotice = localConfigPreviewError
     ? "Local preview: hosted auth and inventory run on the Vercel URL."
     : null;
+  // Sign-in is only actionable when firebase public config actually carries the
+  // essential keys. A 200 with an empty/partial config, or an error response,
+  // must surface an explicit diagnostic instead of a silently-disabled button.
+  const firebaseConfigReady =
+    configState.status === "ready" &&
+    Boolean(
+      configState.data?.firebase?.apiKey && configState.data?.firebase?.projectId,
+    );
+  const signInPreparing =
+    configState.status === "idle" || configState.status === "loading";
+  const signInConfigDiagnostic =
+    configState.status === "error" && !localConfigPreviewError
+      ? `Sign-in is not configured — ${visibleConfigError || configState.error}`
+      : configState.status === "ready" && !firebaseConfigReady
+        ? "Sign-in is not configured — Firebase public config is missing required keys (apiKey / projectId)."
+        : null;
+  const cliLoginPending = Boolean(cliLoginCallback && cliLoginState);
   const isProductSection = isProductLayerTab(operatorTab);
   const productSectionLabel = isProductSection
     ? {
@@ -904,6 +946,7 @@ export function OperatorConsolePage() {
         ...(init.body ? { "Content-Type": "application/json" } : {}),
       },
       body: init.body,
+      signal: init.signal,
     });
 
     return readApiJson<T>(response);
@@ -971,6 +1014,13 @@ export function OperatorConsolePage() {
     const nextChannel = filters.channel ?? channelFilter;
     const nextPatchId = filters.patch ?? patchId;
 
+    // Cancel any inventory load still in flight so a stale response can never
+    // overwrite the newest scope selection.
+    inventoryAbortRef.current?.abort();
+    const abortController = new AbortController();
+    inventoryAbortRef.current = abortController;
+    const { signal } = abortController;
+
     setAppsState({ status: "loading", data: null, error: null });
     setReleasesState({ status: "loading", data: null, error: null });
     setPatchesState({ status: "loading", data: null, error: null });
@@ -979,6 +1029,7 @@ export function OperatorConsolePage() {
       const apps = await fetchOperatorJson<JsonRecord[]>(
         "/api/operator/apps",
         tokenOverride,
+        { signal },
       );
       setAppsState({
         status: "ready",
@@ -987,6 +1038,9 @@ export function OperatorConsolePage() {
         receivedAt: new Date().toISOString(),
       });
     } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
       setAppsState({
         status: "error",
         data: null,
@@ -998,6 +1052,7 @@ export function OperatorConsolePage() {
       const releases = await fetchOperatorJson<JsonRecord[]>(
         operatorPath("/api/operator/releases", { app_id: nextAppId }),
         tokenOverride,
+        { signal },
       );
       setReleasesState({
         status: "ready",
@@ -1006,6 +1061,9 @@ export function OperatorConsolePage() {
         receivedAt: new Date().toISOString(),
       });
     } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
       setReleasesState({
         status: "error",
         data: null,
@@ -1022,6 +1080,7 @@ export function OperatorConsolePage() {
           channel: nextChannel,
         }),
         tokenOverride,
+        { signal },
       );
       setPatchesState({
         status: "ready",
@@ -1030,6 +1089,9 @@ export function OperatorConsolePage() {
         receivedAt: new Date().toISOString(),
       });
     } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
       setPatchesState({
         status: "error",
         data: null,
@@ -1171,11 +1233,18 @@ export function OperatorConsolePage() {
     if (patchIdOverride !== undefined) {
       setPatchId(trimmedPatchId);
     }
+
+    patchHealthAbortRef.current?.abort();
+    const abortController = new AbortController();
+    patchHealthAbortRef.current = abortController;
+
     setPatchHealthState({ status: "loading", data: null, error: null });
 
     try {
       const data = await fetchOperatorJson<JsonRecord>(
         `/api/operator/patch-health?patch_id=${encodeURIComponent(trimmedPatchId)}`,
+        undefined,
+        { signal: abortController.signal },
       );
       setPatchHealthState({
         status: "ready",
@@ -1188,6 +1257,9 @@ export function OperatorConsolePage() {
       params.set("patch", trimmedPatchId);
       window.history.replaceState(null, "", `/operator.html?${params.toString()}`);
     } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
       setPatchHealthState({
         status: "error",
         data: null,
@@ -1340,7 +1412,22 @@ export function OperatorConsolePage() {
   useEffect(() => {
     setRollbackConfirm("");
     setRollbackState(idleState);
+    setRollbackDialogOpen(false);
   }, [patchId]);
+
+  useEffect(() => {
+    if (!rollbackDialogOpen) {
+      return;
+    }
+    rollbackConfirmButtonRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setRollbackDialogOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [rollbackDialogOpen]);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -1482,10 +1569,92 @@ export function OperatorConsolePage() {
     return () => {
       cancelled = true;
       unsubscribe?.();
+      inventoryAbortRef.current?.abort();
+      patchHealthAbortRef.current?.abort();
     };
   }, []);
 
   if (isOperatorRoute(window.location.pathname)) {
+    // Primary UX fix: an unauthenticated operator gets a focused sign-in screen,
+    // not the full dashboard chrome rendered behind a disabled control. The
+    // dashboard (sidebar/topbar/command-center/tiles) is never constructed until
+    // an operator token exists.
+    if (!authToken) {
+      return (
+        <main className="operator-backdrop grid min-h-screen place-items-center overflow-x-hidden px-4 py-10 text-[#111111]">
+          <section className="operator-panel w-full max-w-md p-6 sm:p-8">
+            <a
+              href="/"
+              className="focus-ring inline-flex items-center gap-3"
+              aria-label="Back to soroq.dev home"
+            >
+              <SoroqMark className="size-9" textClassName="text-sm" />
+              <span>
+                <span className="block text-sm font-semibold tracking-tight">Soroq</span>
+                <span className="block text-xs text-[#7a7a80]">Operator console</span>
+              </span>
+            </a>
+
+            <h1 className="mt-6 text-xl font-semibold tracking-[-0.02em]">
+              Sign in to the operator console
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-[#6d6d72]">
+              Inspect your app inventory, release health, and patch receipts, and
+              guard rollbacks — all behind an enabled operator sign-in.
+            </p>
+
+            {cliLoginPending ? (
+              <div className="mt-4">
+                <StateNotice
+                  tone="warning"
+                  message="CLI login in progress — sign in here to return the session to your terminal."
+                />
+              </div>
+            ) : null}
+
+            <Button
+              type="button"
+              className="focus-ring mt-6 h-10 w-full bg-black px-5 text-white hover:bg-[#2b2b2d]"
+              disabled={!firebaseConfigReady}
+              aria-disabled={!firebaseConfigReady}
+              onClick={() => void signIn("google")}
+            >
+              {signInPreparing ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <LogIn className="size-4" aria-hidden="true" />
+              )}
+              {signInPreparing ? "Preparing sign-in…" : "Sign in with Google"}
+            </Button>
+
+            <div className="mt-4 grid gap-2">
+              {localPreviewNotice ? (
+                <StateNotice tone="warning" message={localPreviewNotice} />
+              ) : null}
+              {signInConfigDiagnostic ? (
+                <StateNotice tone="error" message={signInConfigDiagnostic} />
+              ) : null}
+              {operatorState.error ? (
+                <StateNotice tone="error" message={operatorState.error} />
+              ) : null}
+              {authError ? <StateNotice tone="error" message={authError} /> : null}
+            </div>
+
+            <p className="mt-6 border-t border-black/10 pt-4 text-sm text-[#6d6d72]">
+              Prefer the terminal? See the{" "}
+              <a
+                href="https://docs.soroq.dev/cli"
+                className="focus-ring font-medium text-black underline underline-offset-4 hover:text-[#2b2b2d]"
+              >
+                CLI &amp; browser-login docs
+              </a>
+              .
+            </p>
+          </section>
+        </main>
+      );
+    }
+
     return (
       <main className="operator-backdrop min-h-screen overflow-x-hidden text-[#111111]">
         <section className="relative z-10 grid min-h-screen min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[236px_minmax(0,1fr)]">
@@ -1508,6 +1677,8 @@ export function OperatorConsolePage() {
               selectedReleaseId={selectedReleaseInScope ? selectedReleaseId : ""}
               appSearch={appSearch}
               inventoryLoading={inventoryLoading}
+              inventoryReceivedAt={inventoryReceivedAt}
+              inventoryStale={inventoryStale}
               canRefresh={Boolean(authToken)}
               productSectionLabel={productSectionLabel}
               onSearchChange={(value) => {
@@ -1680,7 +1851,17 @@ export function OperatorConsolePage() {
                       ) : null}
                     </div>
                     <div className="grid gap-2">
-                      {visibleApps.length ? (
+                      {(appsState.status === "loading" || appsState.status === "idle") &&
+                      !appRecords.length ? (
+                        <ul className="grid gap-2" aria-hidden="true">
+                          {Array.from({ length: 4 }).map((_, index) => (
+                            <li
+                              key={index}
+                              className="h-[68px] animate-pulse border border-black/10 bg-[#f4f4f5]"
+                            />
+                          ))}
+                        </ul>
+                      ) : visibleApps.length ? (
                         visibleAppRows.map((app) => {
                           const id = recordId(app);
                           const appReleaseCount = releaseRecords.filter(
@@ -2581,9 +2762,9 @@ export function OperatorConsolePage() {
                             <Button
                               type="button"
                               variant="outline"
-	                              className="h-9 border-black bg-black px-5 text-white hover:bg-[#2b2b2d]"
+	                              className="focus-ring h-9 border-black bg-black px-5 text-white hover:bg-[#2b2b2d]"
                               disabled={!rollbackArmed}
-                              onClick={() => void rollbackPatch()}
+                              onClick={() => setRollbackDialogOpen(true)}
                             >
                               {rollbackState.status === "loading" ? (
                                 <Loader2 className="size-4 animate-spin" />
@@ -2608,6 +2789,58 @@ export function OperatorConsolePage() {
                           data={healthRecord}
                           empty="Control-plane health JSON appears after auth."
                         />
+
+                        {rollbackDialogOpen ? (
+                          <div
+                            className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+                            onClick={() => setRollbackDialogOpen(false)}
+                          >
+                            <div
+                              role="dialog"
+                              aria-modal="true"
+                              aria-labelledby="rollback-dialog-title"
+                              className="operator-panel w-full max-w-md p-5"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <h2
+                                id="rollback-dialog-title"
+                                className="text-base font-semibold tracking-[-0.01em]"
+                              >
+                                Confirm rollback
+                              </h2>
+                              <p className="mt-2 text-sm leading-6 text-[#6d6d72]">
+                                This suppresses future patch-check delivery for patch{" "}
+                                <span className="break-all font-mono text-black">
+                                  {rollbackTarget}
+                                </span>
+                                {selectedAppInScope ? ` in ${selectedAppName}` : ""}. This
+                                action cannot be undone from the console.
+                              </p>
+                              <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="focus-ring h-9 border-black/10 bg-white px-4 text-black hover:bg-[#f3f3f4]"
+                                  onClick={() => setRollbackDialogOpen(false)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  ref={rollbackConfirmButtonRef}
+                                  type="button"
+                                  className="focus-ring h-9 bg-black px-5 text-white hover:bg-[#2b2b2d]"
+                                  disabled={!rollbackArmed}
+                                  onClick={() => {
+                                    setRollbackDialogOpen(false);
+                                    void rollbackPatch();
+                                  }}
+                                >
+                                  Confirm rollback
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>

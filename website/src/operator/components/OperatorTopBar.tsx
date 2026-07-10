@@ -11,6 +11,8 @@ export function OperatorTopBar({
   selectedReleaseId,
   appSearch,
   inventoryLoading,
+  inventoryReceivedAt,
+  inventoryStale,
   canRefresh,
   productSectionLabel,
   onSearchChange,
@@ -23,6 +25,8 @@ export function OperatorTopBar({
   selectedReleaseId: string;
   appSearch: string;
   inventoryLoading: boolean;
+  inventoryReceivedAt?: string;
+  inventoryStale?: boolean;
   canRefresh: boolean;
   productSectionLabel?: string;
   onSearchChange: (value: string) => void;
@@ -30,6 +34,16 @@ export function OperatorTopBar({
   onSelectTab: (tab: OperatorTab) => void;
 }) {
   const productMode = Boolean(productSectionLabel);
+  const inventoryStatus = inventoryLoading
+    ? "Refreshing inventory…"
+    : inventoryStale
+      ? "Inventory may be stale — refresh"
+      : inventoryReceivedAt
+        ? `Inventory updated ${new Date(inventoryReceivedAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`
+        : "";
 
   return (
     <header className="operator-topbar sticky top-0 z-20 grid min-w-0 gap-3 overflow-hidden border-b border-black/10 px-4 py-3 backdrop-blur-2xl sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,420px)_auto] xl:items-center">
@@ -75,6 +89,23 @@ export function OperatorTopBar({
       )}
 
       <div className="grid w-full min-w-0 grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+        {inventoryStatus ? (
+          <span
+            role="status"
+            aria-live="polite"
+            className={`col-span-3 order-first inline-flex items-center gap-1.5 text-xs sm:order-none ${
+              inventoryStale ? "text-black" : "text-[#7a7a80]"
+            }`}
+          >
+            {inventoryStale ? (
+              <span
+                className="size-1.5 rounded-full bg-black"
+                aria-hidden="true"
+              />
+            ) : null}
+            {inventoryStatus}
+          </span>
+        ) : null}
         <ApiStatusPill
           state={healthState.status}
           readyLabel="control plane live"
