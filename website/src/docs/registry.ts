@@ -229,7 +229,7 @@ soroq toolchain doctor`,
           {
             tone: "note",
             title: "Download size",
-            body: "The frontend archive is about 1.06 GiB (1,140,170,246 bytes). Expect an additional toolchain download on first install, so keep some disk headroom.",
+            body: "The frontend archive is about 1.06 GiB (1,140,170,246 bytes), installed under ~/.soroq/frontends/ (toolchains under ~/.soroq/toolchains/). Expect an additional toolchain download on first install, so keep some disk headroom. A verified existing install is reused; re-run with --force to reinstall.",
           },
         ],
       },
@@ -237,16 +237,17 @@ soroq toolchain doctor`,
         heading: "3. Cut the base release",
         anchor: "3-cut-the-base-release",
         intro:
-          "Register the stock APK as the base the patch will target. The stock app shows the default counter value (42). Run this from inside my_app.",
+          "Publishing needs a one-time browser login (installs and doctor did not). Then register the stock APK as the base the patch will target — the stock app shows the default counter value (42). Run this from inside my_app.",
         cwd: "~/my_app",
         commands: [
-          `soroq release android \\
+          `soroq login --api "$SOROQ_API"       # one-time: opens the browser to sign in
+soroq release android \\
   --toolchain ${ANDROID_TC} \\
   --artifact-type apk --api "$SOROQ_API" \\
   --app-id "$SOROQ_APP_ID" --release-id "$SOROQ_RELEASE_ID" \\
   --version 1.0.0+1 --channel "$SOROQ_CHANNEL"`,
         ],
-        output: "base release accepted for $SOROQ_RELEASE_ID (version 1.0.0+1)",
+        output: "logged in; base release accepted for $SOROQ_RELEASE_ID (version 1.0.0+1)",
         next: "Change visible code and publish a patch.",
       },
       {
@@ -401,16 +402,19 @@ soroq toolchain doctor`,
         next: "Create the app and install the frontend + iOS toolchain.",
       },
       {
-        heading: "1. Create the app and install frontend + toolchain",
-        anchor: "1-create-the-app-and-install-frontend-toolchain",
+        heading: "1. Create the app, init Soroq, install frontend + toolchain",
+        anchor: "1-create-the-app-init-install-frontend-toolchain",
+        intro:
+          "Scaffold a stock Flutter app, add the runtime package, and run soroq init. init writes soroq.yaml and scaffolds manifest_trust (public key in the project, private seed at mode 0600, gitignored) — so the file you edit in the next step already exists and the base you build in step 3 has a key to sign with.",
         cwd: "~",
         commands: [
           `flutter create my_app && cd my_app
 flutter pub add soroq_flutter   # soroq_flutter ${PRODUCT.packages.soroqFlutter}
+soroq init --app-id "$SOROQ_APP_ID" --channel "$SOROQ_CHANNEL" --api "$SOROQ_API"
 soroq frontend install ${FRONTEND} --api "$SOROQ_API"
 soroq toolchain install ${IOS_TC} --api "$SOROQ_API"`,
         ],
-        output: "frontend + iOS toolchain installed",
+        output: "soroq.yaml written + manifest_trust scaffolded; frontend + iOS toolchain installed",
         next: "Declare the functions the engine may patch.",
       },
       {
@@ -430,14 +434,17 @@ soroq toolchain install ${IOS_TC} --api "$SOROQ_API"`,
       {
         heading: "3. Build the signed base release",
         anchor: "3-build-the-signed-base-release",
+        intro:
+          "Publishing needs a one-time browser login (installs and doctor did not). Then build and register the signed base engine release.",
         cwd: "~/my_app",
         commands: [
-          `soroq release ios --engine --build \\
+          `soroq login --api "$SOROQ_API"       # one-time: opens the browser to sign in
+soroq release ios --engine --build \\
   --toolchain ${IOS_TC} \\
   --app-id "$SOROQ_APP_ID" --release-id "$SOROQ_RELEASE_ID" \\
   --channel "$SOROQ_CHANNEL" --api "$SOROQ_API"`,
         ],
-        output: "signed base engine release built for $SOROQ_RELEASE_ID",
+        output: "logged in; signed base engine release built for $SOROQ_RELEASE_ID",
         next: "Publish an engine patch.",
       },
       {
@@ -473,6 +480,13 @@ soroq toolchain install ${IOS_TC} --api "$SOROQ_API"`,
           `soroq rollback ios-engine --patch-id "$SOROQ_PATCH_ID" --api "$SOROQ_API" --verify`,
         ],
         output: "rollback verified for $SOROQ_PATCH_ID",
+        callouts: [
+          {
+            tone: "note",
+            title: "Rollback nuance",
+            body: "An app already running with the patch may still show the patched value for that launch. The NEXT cold start serves the base value — cold-start the iPhone again to confirm it returned to base.",
+          },
+        ],
       },
       {
         heading: "Expected values",
