@@ -137,15 +137,15 @@ const proofStats = [
   },
   {
     value: "Pub.dev",
-    label: "soroq_sdk 0.1.3 + soroq_flutter 0.1.12",
+    label: "soroq_sdk 0.1.6 + soroq_flutter 0.2.3",
   },
   {
     value: "Published",
-    label: "soroq_flutter 0.1.12 live on pub.dev",
+    label: "soroq_flutter 0.2.3 live on pub.dev",
   },
   {
-    value: "Next",
-    label: "package-post-publish-proof",
+    value: "Verified",
+    label: "packages published and reproducibly verified",
   },
   {
     value: "Fast",
@@ -1355,7 +1355,7 @@ function App() {
             <SectionIntro
               eyebrow="Plans"
               title="Start like a SaaS product, even while the alpha is careful."
-              body="The launch page should make it obvious that Soroq can become a paid control plane: team workflows, hosted operations, compatibility review, and private deployment conversations."
+              body="Soroq is a hosted control plane: team workflows, hosted operations, compatibility review, and private deployment conversations."
             />
             <p className="text-sm leading-6 text-muted-foreground lg:text-right">
               Pricing is intentionally framed as alpha access today, not a fake
