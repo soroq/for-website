@@ -446,7 +446,7 @@ const productPages: ProductPageConfig[] = [
 
 const publicInstallCommand = `curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/soroq/install/main/install.sh -sSf | bash
 export PATH="$HOME/.soroq/bin:$PATH"
-soroq version   # -> soroq v0.2.1`;
+soroq version   # -> soroq v0.2.2`;
 
 type DocTone = "info" | "warn" | "success";
 
@@ -492,7 +492,7 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
         callouts: [
           {
             tone: "info",
-            body: "Prefer to build it yourself? git clone https://github.com/soroq/install && cd install/backend && make build gives you soroq v0.2.1. Full install details, checksum verification, and quarantine removal live on the CLI page. Windows is pending — see the Windows acceptance checklist.",
+            body: "Prefer to build it yourself? git clone https://github.com/soroq/install && cd install/backend && make build gives you soroq v0.2.2. Full install details, checksum verification, and quarantine removal live on the CLI page. Windows is pending — see the Windows acceptance checklist.",
           },
         ],
       },
@@ -559,7 +559,7 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
           "git clone https://github.com/soroq/install",
           "cd install/backend",
           "make build        # stamps ./VERSION -> ./soroq + ./soroqctl",
-          "./soroq version   # -> soroq v0.2.1",
+          "./soroq version   # -> soroq v0.2.2",
           "# or plainly, without the Makefile:",
           "go build ./cmd/soroq ./cmd/soroqctl",
           "go test ./...",
@@ -587,7 +587,7 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
       },
       {
         heading: "Confirm the version",
-        commands: ["soroq version   # -> soroq v0.2.1"],
+        commands: ["soroq version   # -> soroq v0.2.2"],
       },
     ],
     links: [
@@ -597,8 +597,8 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
         external: true,
       },
       {
-        label: "Release v0.2.1 (downloads + checksums.txt)",
-        href: "https://github.com/soroq/install/releases/tag/v0.2.1",
+        label: "Release v0.2.2 (downloads + checksums.txt)",
+        href: "https://github.com/soroq/install/releases/tag/v0.2.2",
         external: true,
       },
       {
@@ -822,7 +822,7 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
           {
             term: "Prefer building from source",
             detail:
-              "Supported on macOS, Linux, and Windows: git clone https://github.com/soroq/install && cd install/backend && make build (or go build ./cmd/soroq ./cmd/soroqctl) -> soroq v0.2.1.",
+              "Supported on macOS and Linux (Windows pending): git clone https://github.com/soroq/install && cd install/backend && make build (or go build ./cmd/soroq ./cmd/soroqctl) -> soroq v0.2.2.",
           },
         ],
       },
