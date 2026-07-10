@@ -486,12 +486,13 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
     sections: [
       {
         heading: "1. Install the Soroq CLI",
-        intro: "macOS and Linux for the beta. This installs both soroq and soroqctl.",
+        intro:
+          "macOS and Linux are supported for the beta (Linux is now natively CI-validated, not emulated). This installs both soroq and soroqctl. You can also build from source on any of the three platforms.",
         commands: [publicInstallCommand],
         callouts: [
           {
             tone: "info",
-            body: "Full install details, checksum verification, and quarantine removal live on the CLI page.",
+            body: "Prefer to build it yourself? git clone https://github.com/soroq/install && cd install/backend && make build gives you soroq v0.2.1. Full install details, checksum verification, and quarantine removal live on the CLI page. Windows is pending — see the Windows acceptance checklist.",
           },
         ],
       },
@@ -536,17 +537,37 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
   },
   cli: {
     intro:
-      "The Soroq CLI ships as a public install script for macOS. It installs both soroq and soroqctl into $HOME/.soroq/bin.",
+      "The Soroq CLI ships as a public install script (macOS + Linux) and as a public source tree you can build yourself. Either way you get both soroq and soroqctl in $HOME/.soroq/bin.",
     sections: [
       {
-        heading: "Install on macOS",
+        heading: "Install on macOS or Linux",
         intro:
           "Run the public installer, add the bin directory to your PATH, and check the version. macOS (Apple Silicon + Intel) and Linux (amd64 + arm64) are supported; install.sh auto-detects OS + architecture.",
         commands: [publicInstallCommand],
         callouts: [
           {
             tone: "warn",
-            body: "macOS (Apple Silicon + Intel) and Linux (amd64 + arm64) are supported and smoke-tested. Windows is pending; source-build of the full CLI is pending.",
+            body: "macOS (Apple Silicon + Intel) and Linux (amd64 + arm64) are supported and smoke-tested — Linux is now natively validated in CI, not under emulation. Windows is pending (see the Windows acceptance checklist). Building from source is supported on all three.",
+          },
+        ],
+      },
+      {
+        heading: "Build from source (supported)",
+        intro:
+          "backend/ is the public CLI source — the same client code shipped in the binary releases, exported deterministically from the main repo (operator-only publishing and private control-plane code are excluded). No private module, private Git dependency, or local path is required.",
+        commands: [
+          "git clone https://github.com/soroq/install",
+          "cd install/backend",
+          "make build        # stamps ./VERSION -> ./soroq + ./soroqctl",
+          "./soroq version   # -> soroq v0.2.1",
+          "# or plainly, without the Makefile:",
+          "go build ./cmd/soroq ./cmd/soroqctl",
+          "go test ./...",
+        ],
+        callouts: [
+          {
+            tone: "info",
+            body: "The two operator-only commands (frontend publish, toolchain publish) are intentionally not in this build; every normal developer command (install/doctor, login/whoami/logout, init, release, patch, rollback) is present.",
           },
         ],
       },
@@ -578,6 +599,11 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
       {
         label: "Release v0.2.1 (downloads + checksums.txt)",
         href: "https://github.com/soroq/install/releases/tag/v0.2.1",
+        external: true,
+      },
+      {
+        label: "Windows acceptance checklist (pending)",
+        href: "https://github.com/soroq/install/blob/main/docs/windows-acceptance.md",
         external: true,
       },
       { label: "Getting started", href: "/getting-started" },
@@ -782,6 +808,21 @@ const docPages: Partial<Record<ProductPageKey, DocPage>> = {
           {
             term: "App will not install or run",
             detail: "Apple signing is required to install and run on device.",
+          },
+        ],
+      },
+      {
+        heading: "Platforms",
+        rows: [
+          {
+            term: "Windows",
+            detail:
+              "Windows is pending. install.sh does not offer it and install.ps1 stays gated behind SOROQ_INSTALL_ALLOW_WINDOWS=1. It becomes supported only after the interactive gates pass: github.com/soroq/install/blob/main/docs/windows-acceptance.md",
+          },
+          {
+            term: "Prefer building from source",
+            detail:
+              "Supported on macOS, Linux, and Windows: git clone https://github.com/soroq/install && cd install/backend && make build (or go build ./cmd/soroq ./cmd/soroqctl) -> soroq v0.2.1.",
           },
         ],
       },
