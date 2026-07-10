@@ -1,281 +1,215 @@
-import {
-  Apple,
-  CircleGauge,
-  GitBranch,
-  PackageCheck,
-  RadioTower,
-  RotateCcw,
-  Smartphone,
-  TerminalSquare,
-} from "lucide-react";
+import { Apple, Smartphone } from "lucide-react";
 import type { ComponentType } from "react";
+import { PRODUCT } from "@/lib/productConstants";
 import type { ProductPageConfig } from "@/shared/pageTypes";
 
+// Homepage in-page navigation. Anchors match the section ids in MarketingHome.
 export const navItems = [
-  { label: "Platform", href: "#platform" },
+  { label: "Platforms", href: "#platforms" },
   { label: "Workflow", href: "#workflow" },
-  { label: "Safety", href: "#safety" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Trust", href: "#trust" },
+  { label: "Status", href: "#status" },
 ];
 
-export const proofStats = [
-  {
-    value: "Exact",
-    label: "base release matching",
-  },
-  {
-    value: "Signed",
-    label: "hosted patch artifacts",
-  },
-  {
-    value: "Pub.dev",
-    label: "soroq_sdk 0.1.6 + soroq_flutter 0.2.3",
-  },
-  {
-    value: "Published",
-    label: "soroq_flutter 0.2.3 live on pub.dev",
-  },
-  {
-    value: "Verified",
-    label: "packages published and reproducibly verified",
-  },
-  {
-    value: "Fast",
-    label: "server-side rollback",
-  },
-];
-
-export const platformCards: Array<{
+// Equal-weight platform cards. Android and iOS share one shape and one visual
+// treatment — no featured/tier ranking. Tier strings come from PRODUCT so they
+// stay honest and version/status accurate.
+export const homePlatforms: Array<{
   icon: ComponentType<{ className?: string }>;
-  tone: "coral" | "violet" | "dark";
-  label: string;
-  title: string;
+  name: string;
+  kind: string;
+  tier: string;
   body: string;
-  action: string;
+  points: string[];
+  href: string;
 }> = [
   {
-    icon: PackageCheck,
-    tone: "coral",
-    label: "Base app",
-    title: "Keep store releases lean",
-    body: "Ship the APK or AAB once, then move eligible asset and config fixes through hosted OTA artifacts.",
-    action: "Register release",
+    icon: Smartphone,
+    name: "Android",
+    kind: "Code hard-OTA",
+    tier: PRODUCT.tiers.android,
+    body: "Diff a candidate against the exact base APK or AAB, ship a signed code patch, and roll it back on the next cold start.",
+    points: [
+      "Base APK/AAB matched exactly",
+      "Signed code patch bundle",
+      "Emulator + device, fresh-user proven",
+    ],
+    href: "/android-quickstart",
   },
   {
-    icon: GitBranch,
-    tone: "violet",
-    label: "Rollout",
-    title: "Target the users that should see it",
-    body: "Patches stay tied to app, runtime, channel, release metadata, and rollout percentage.",
-    action: "Stage cohort",
-  },
-  {
-    icon: RotateCcw,
-    tone: "dark",
-    label: "Recovery",
-    title: "Roll back before the fire spreads",
-    body: "Patch health, failed clients, and rollback live in one operator path instead of a late-night script.",
-    action: "Arm rollback",
+    icon: Apple,
+    name: "iOS",
+    kind: "Engine hard-OTA",
+    tier: PRODUCT.tiers.ios,
+    body: "Patch a running Flutter engine on a physical iPhone behind a signed manifest, then roll it back from the same surface.",
+    points: [
+      "Physical device only, Apple signing",
+      "Signed engine patch + manifest trust",
+      "On-device, fresh-user proven",
+    ],
+    href: "/ios-quickstart",
   },
 ];
 
-export const workflowSteps = [
+// The five-stage release flow rendered on the homepage.
+export const releaseStages: Array<{
+  n: string;
+  label: string;
+  tone: "action" | "verified" | "staged" | "rollback";
+  body: string;
+}> = [
   {
-    icon: TerminalSquare,
-    title: "Register the release",
-    body: "Start with the Android artifact already shipped through the store.",
+    n: "01",
+    label: "Build",
+    tone: "action",
+    body: "Diff a candidate against the exact base release and produce an eligible hard-OTA patch bundle.",
   },
   {
-    icon: PackageCheck,
-    title: "Build a patch",
-    body: "Compare the candidate against the exact base and sign the eligible asset/config patch bundle.",
+    n: "02",
+    label: "Sign",
+    tone: "verified",
+    body: "Sign the patch manifest so every client can verify provenance before anything applies.",
   },
   {
-    icon: RadioTower,
-    title: "Roll out safely",
-    body: "Serve the patch by channel and cohort, then apply it on the next cold start.",
+    n: "03",
+    label: "Roll out",
+    tone: "staged",
+    body: "Serve the patch by app, channel, and rollout percentage to a staged cohort.",
   },
   {
-    icon: CircleGauge,
-    title: "Watch health",
-    body: "Track accepted, staged, failed, and rolled-back clients from the hosted surface.",
-  },
-];
-
-export const safetyRows = [
-  { label: "Patch", value: "Known", meta: "receipt-linked patch ID" },
-  { label: "Rollout", value: "Staged", meta: "deterministic cohort" },
-  { label: "Health", value: "Reported", meta: "client receipts" },
-  { label: "Rollback", value: "Guarded", meta: "server-side control" },
-];
-
-export const pricingCards = [
-  {
-    title: "Alpha",
-    price: "Free",
-    detail: "For controlled Android trials",
-    features: ["CLI release lifecycle", "Hosted patch delivery", "Patch-health basics"],
-    cta: "Start quickstart",
-    href: "/quickstart.html",
-    featured: false,
+    n: "04",
+    label: "Observe",
+    tone: "action",
+    body: "Watch accepted, staged, failed, and rolled-back clients report back from receipts.",
   },
   {
-    title: "Team",
-    price: "Invite",
-    detail: "For teams testing production-like rollout paths",
-    features: ["Cohort rollout", "Operator rollback", "Priority compatibility review"],
-    cta: "Request access",
-    href: "/quickstart.html",
-    featured: true,
-  },
-  {
-    title: "Enterprise",
-    price: "Custom",
-    detail: "For private-cloud and compliance-heavy mobile teams",
-    features: ["Dedicated controls", "Release-safety runbooks", "Self-hosting discussion"],
-    cta: "Talk to us",
-    href: "/operator.html",
-    featured: false,
+    n: "05",
+    label: "Roll back",
+    tone: "rollback",
+    body: "Suppress the patch server-side; clients return to the base release on the next check.",
   },
 ];
 
-export const heroPixels = [
-  [0, 45, 8, 18],
-  [7, 50, 6, 12],
-  [13, 55, 9, 18],
-  [21, 51, 7, 12],
-  [27, 58, 10, 16],
-  [36, 54, 8, 20],
-  [43, 49, 10, 16],
-  [52, 42, 7, 14],
-  [58, 35, 8, 15],
-  [66, 31, 12, 18],
-  [77, 26, 7, 14],
-  [84, 20, 11, 22],
-  [92, 15, 7, 14],
-  [12, 67, 7, 10],
-  [26, 69, 8, 12],
-  [38, 65, 6, 10],
-  [49, 68, 10, 13],
-  [61, 63, 8, 12],
-  [72, 59, 6, 10],
-] as const;
+// Why a patch is trustworthy.
+export const trustRows = [
+  {
+    label: "Exact base match",
+    body: "A patch only applies when the base release hash and Flutter runtime match. A mismatch fails closed instead of guessing.",
+  },
+  {
+    label: "Signed manifest",
+    body: "Every patch ships a signed manifest. Clients reject anything they cannot verify before it ever runs.",
+  },
+  {
+    label: "Receipt-linked health",
+    body: "Each patch has a stable id and client receipts, so rollout health is evidence you can read, not a hopeful guess.",
+  },
+];
 
-export const otaFiles = [
-  {
-    label: "assets.diff",
-    delay: 0,
-    start: "left-[1%] top-[15%]",
-    x: [0, 70, 152, 236],
-    y: [0, -18, -28, -40],
-    rotate: [-8, 7, -4, 0],
-  },
-  {
-    label: "manifest.sig",
-    delay: 0.95,
-    start: "left-[8%] top-[20%]",
-    x: [0, 80, 152, 226],
-    y: [0, 10, 4, -8],
-    rotate: [5, -7, 5, 0],
-  },
-  {
-    label: "patch.bundle",
-    delay: 1.85,
-    start: "left-[2%] top-[19%]",
-    x: [0, 62, 128, 198],
-    y: [0, 20, 12, 0],
-    rotate: [-5, 8, -3, 0],
-  },
-] as const;
+// Honest compatibility boundary. Statuses: OTA (moves), Blocked (fails closed),
+// Store (still ships through the app store).
+export const boundaryRows: Array<[string, "OTA" | "Blocked" | "Store", string]> = [
+  ["Eligible Flutter code and assets", "OTA", "moves as a signed hard-OTA patch"],
+  ["Runtime or base release mismatch", "Blocked", "fails closed until the base matches"],
+  ["Native or store-level changes", "Store", "still ship through the app store"],
+  ["Rollback", "OTA", "server-side, on the next patch check"],
+];
 
-export const releaseFeed = [
+// Fresh-user proof / status. Platform-neutral, experimental tier.
+export const statusRows: Array<{
+  icon: ComponentType<{ className?: string }>;
+  platform: string;
+  state: string;
+  detail: string;
+}> = [
   {
-    label: "Now verifying base release",
-    detail: "signature and runtime match",
+    icon: Smartphone,
+    platform: "Android hard-OTA",
+    state: "Fresh-user proven",
+    detail:
+      "Base to signed code patch to rollback, demonstrated end to end on an emulator and a device with a fresh user. Experimental tier.",
   },
   {
-    label: "Now publishing OTA files",
-    detail: "diff, manifest, and bundle go edge-side",
+    icon: Apple,
+    platform: "iOS hard-OTA",
+    state: "Device proven",
+    detail:
+      "Fresh-user engine patch and rollback demonstrated on a physical iPhone. Experimental tier, physical device only, Apple signing required.",
   },
-  {
-    label: "Now staging rollout",
-    detail: "stable clients are selected safely",
-  },
-  {
-    label: "Now watching install health",
-    detail: "clients report back before expansion",
-  },
-  {
-    label: "Now verifying base release",
-    detail: "signature and runtime match",
-  },
-] as const;
+];
+
+// Published tooling versions, sourced from PRODUCT (never hardcode versions).
+export const toolingRows = [
+  { name: "soroq CLI", version: PRODUCT.cliVersion, note: "release + patch + rollback" },
+  { name: "soroq_flutter", version: PRODUCT.packages.soroqFlutter, note: "runtime integration" },
+  { name: "soroq_sdk", version: PRODUCT.packages.soroqSdk, note: "patch client" },
+];
 
 export const pageNavItems = [
   { label: "Home", href: "/" },
-  { label: "Getting started", href: "/getting-started.html" },
-  { label: "CLI", href: "/cli.html" },
-  { label: "Android", href: "/android-quickstart.html" },
-  { label: "iOS", href: "/ios-quickstart.html" },
-  { label: "Troubleshooting", href: "/troubleshooting.html" },
-  { label: "Dashboard", href: "/operator.html" },
+  { label: "Getting started", href: "/getting-started" },
+  { label: "CLI", href: "/cli" },
+  { label: "Android", href: "/android-quickstart" },
+  { label: "iOS", href: "/ios-quickstart" },
+  { label: "Troubleshooting", href: "/troubleshooting" },
+  { label: "Dashboard", href: "/operator" },
 ] as const;
 
 
 export const productPages: ProductPageConfig[] = [
   {
     key: "quickstart",
-    path: "/quickstart.html",
-    eyebrow: "Alpha onboarding",
+    path: "/quickstart",
+    eyebrow: "Onboarding",
     title: "Take an Android store release to an eligible OTA patch.",
-    body: "Register the base AAB, publish a signed asset/config patch, stage rollout, then watch clients report back before the cohort expands.",
-    primary: { label: "Open dashboard", href: "/operator.html" },
-    secondary: { label: "Read CLI", href: "/cli.html" },
-    facts: ["base AAB registered", "asset/config patch signed", "cohort staged"],
+    body: "Register the base AAB, publish a signed patch, stage rollout, then watch clients report back before the cohort expands.",
+    primary: { label: "Open dashboard", href: "/operator" },
+    secondary: { label: "Read CLI", href: "/cli" },
+    facts: ["base AAB registered", "patch signed", "cohort staged"],
   },
   {
     key: "cli",
-    path: "/cli.html",
+    path: "/cli",
     eyebrow: "Developer workflow",
     title: "A release CLI that explains what it is doing.",
-    body: "Soroq's CLI is framed around concrete release actions, not mystery commands: match the base, build the eligible asset/config patch, sign the manifest, upload artifacts, and roll back with one command.",
-    primary: { label: "Start quickstart", href: "/quickstart.html" },
-    secondary: { label: "Open dashboard", href: "/operator.html" },
+    body: "Soroq's CLI is framed around concrete release actions, not mystery commands: match the base, build the eligible patch, sign the manifest, upload artifacts, and roll back with one command.",
+    primary: { label: "Getting started", href: "/getting-started" },
+    secondary: { label: "Open dashboard", href: "/operator" },
     facts: ["deterministic release IDs", "signed manifests", "rollback ticket ready"],
   },
   {
     key: "control-plane",
-    path: "/control-plane.html",
+    path: "/control-plane",
     eyebrow: "Hosted release plane",
     title: "One surface for files, cohorts, health, and rollback.",
-    body: "The control plane page shows how Soroq turns Android public-alpha OTA into a SaaS workflow: CLI publishes eligible artifacts, the hosted plane chooses clients, and operators can slow down or roll back.",
-    primary: { label: "Open dashboard", href: "/operator.html" },
-    secondary: { label: "Check compatibility", href: "/compatibility.html" },
+    body: "The control plane page shows how Soroq turns hard-OTA delivery into a hosted workflow: the CLI publishes eligible artifacts, the hosted plane chooses clients, and operators can slow down or roll back.",
+    primary: { label: "Open dashboard", href: "/operator" },
+    secondary: { label: "Check compatibility", href: "/compatibility" },
     facts: ["artifact storage", "cohort gates", "health decisions"],
   },
   {
     key: "compatibility",
-    path: "/compatibility.html",
+    path: "/compatibility",
     eyebrow: "Compatibility model",
     title: "OTA only works when the base release is explicit.",
     body: "Soroq makes the compatibility decision visible before a patch reaches users: what can move OTA, what must stay in the store release, and what gets blocked.",
-    primary: { label: "Run quickstart", href: "/quickstart.html" },
-    secondary: { label: "View control plane", href: "/control-plane.html" },
+    primary: { label: "Getting started", href: "/getting-started" },
+    secondary: { label: "View control plane", href: "/control-plane" },
     facts: ["runtime matched", "manifest verified", "unsafe changes blocked"],
   },
   {
     key: "operator",
-    path: "/operator.html",
+    path: "/operator",
     eyebrow: "Operator dashboard",
     title: "Browse real releases and inspect patch health from the hosted plane.",
     body: "Soroq keeps operator auth, control-plane health, release inventory, patch discovery, rollback, and patch receipts in one surface before we add guarded rollout expansion controls.",
-    primary: { label: "Start alpha", href: "/quickstart.html" },
-    secondary: { label: "Read compatibility", href: "/compatibility.html" },
+    primary: { label: "Getting started", href: "/getting-started" },
+    secondary: { label: "Read compatibility", href: "/compatibility" },
     facts: ["Firebase auth", "release inventory", "patch-health lookup"],
   },
   {
     key: "getting-started",
-    path: "/getting-started.html",
+    path: "/getting-started",
     eyebrow: "Onboarding",
     title: "Set up Soroq and ship your first hard OTA patch.",
     body: "Install the CLI, add the frontend and toolchains, verify with doctor, then log in only when you are ready to publish. Installs and doctor need no login.",
@@ -285,17 +219,17 @@ export const productPages: ProductPageConfig[] = [
   },
   {
     key: "android-quickstart",
-    path: "/android-quickstart.html",
+    path: "/android-quickstart",
     eyebrow: "Android hard OTA",
     title: "Take a Flutter APK to a code patch, then roll it back.",
-    body: "Register a base APK, publish a signed code patch at full rollout, then roll back on the next cold start. Experimental hard-OTA tier, public-alpha.",
+    body: "Register a base APK, publish a signed code patch at full rollout, then roll back on the next cold start. Experimental hard-OTA tier.",
     primary: { label: "Install the CLI", href: "/cli" },
     secondary: { label: "Getting started", href: "/getting-started" },
     facts: ["base to patch to rollback", "two cold-start model", "server-side rollback"],
   },
   {
     key: "ios-quickstart",
-    path: "/ios-quickstart.html",
+    path: "/ios-quickstart",
     eyebrow: "iOS hard OTA (experimental)",
     title: "Patch a running Flutter engine on a physical iPhone.",
     body: "Declare patchable functions, build a signed base, publish an engine patch, and roll back. Physical device only, Apple signing required, experimental tier.",
@@ -305,7 +239,7 @@ export const productPages: ProductPageConfig[] = [
   },
   {
     key: "troubleshooting",
-    path: "/troubleshooting.html",
+    path: "/troubleshooting",
     eyebrow: "Troubleshooting",
     title: "Fix the errors you are most likely to hit.",
     body: "Keychain fallbacks, missing frontend or toolchain, stale Android status, iOS device limits, and fail-closed signature errors.",
@@ -326,7 +260,7 @@ export const commandRows = [
   },
   {
     command: "soroq patch android --base-artifact base.aab --candidate-artifact candidate.aab",
-    output: "eligible asset/config patch uploaded for staged cohort",
+    output: "eligible patch uploaded for staged cohort",
   },
 ] as const;
 
@@ -416,7 +350,7 @@ export const cliLifecyclePoints = [
 export const compatibilityRows = [
   ["Flutter asset/config change", "Allowed", "served as OTA artifact"],
   ["Runtime mismatch", "Blocked", "base release does not match"],
-  ["Native Android or AOT code change", "Store", "not the public-alpha OTA path"],
+  ["Native Android or AOT code change", "Store", "ships through the app store"],
   ["Rollback", "Allowed", "server-side decision"],
 ] as const;
 
@@ -450,23 +384,21 @@ export const operatorActions = [
   },
 ] as const;
 
-
-export const productStatusRows = [
+export const releaseFeed = [
   {
-    icon: Smartphone,
-    platform: "Android hard OTA",
-    state: "Fresh-user proven",
-    detail:
-      "Base to code patch to rollback demonstrated end to end on an emulator with a fresh user. Public-alpha, experimental tier.",
-    tone: "bg-success text-primary",
+    label: "Now verifying base release",
+    detail: "signature and runtime match",
   },
   {
-    icon: Apple,
-    platform: "iOS hard OTA",
-    state: "Device proven",
-    detail:
-      "Fresh-user engine patch and rollback demonstrated on a physical iPhone. Experimental tier, physical device only, Apple signing required.",
-    tone: "bg-success text-primary",
+    label: "Now publishing OTA files",
+    detail: "diff, manifest, and bundle go edge-side",
+  },
+  {
+    label: "Now staging rollout",
+    detail: "stable clients are selected safely",
+  },
+  {
+    label: "Now watching install health",
+    detail: "clients report back before expansion",
   },
 ] as const;
-

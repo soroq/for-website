@@ -3,12 +3,10 @@ import {
   useReducedMotion,
   useScroll,
   useSpring,
-  useTransform,
 } from "framer-motion";
 import { useState, type ComponentType, type ReactNode } from "react";
 import {
   AlertCircle,
-  Apple,
   ArrowRight,
   BarChart3,
   CheckCircle2,
@@ -16,35 +14,27 @@ import {
   FileCode2,
   LockKeyhole,
   PackageCheck,
+  RadioTower,
   RotateCcw,
   ShieldCheck,
-  Smartphone,
   TerminalSquare,
-  Wifi,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SoroqMark } from "@/components/SoroqMark";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PRODUCT } from "@/lib/productConstants";
+import { CommandBlock } from "@/shared/primitives";
 import { usePointerMotion, type PointerMotion } from "@/shared/motion";
 import type { ProductPageConfig, ProductPageKey } from "@/shared/pageTypes";
-import { docPages, DocHeroAside, DocsArticle } from "@/docs/docs";
 import {
   navItems,
   pageNavItems,
-  proofStats,
-  platformCards,
-  workflowSteps,
-  safetyRows,
-  pricingCards,
-  heroPixels,
-  otaFiles,
+  homePlatforms,
+  releaseStages,
+  trustRows,
+  boundaryRows,
+  statusRows,
+  toolingRows,
   releaseFeed,
   commandRows,
   cliCommandRows,
@@ -56,7 +46,6 @@ import {
   compatibilityRows,
   controlPlaneNodes,
   operatorActions,
-  productStatusRows,
 } from "@/marketing/data";
 
 export function ProductPage({
@@ -68,8 +57,6 @@ export function ProductPage({
   pointer: PointerMotion;
   reducedMotion: boolean | null;
 }) {
-  const doc = docPages[page.key];
-  const isPureDoc = Boolean(doc) && page.key !== "cli";
   return (
     <main className="min-h-screen bg-page">
       <SiteHeader activePath={page.path} />
@@ -113,23 +100,16 @@ export function ProductPage({
             </div>
           </motion.div>
 
-          {isPureDoc && doc ? (
-            <DocHeroAside page={page} doc={doc} reducedMotion={reducedMotion} />
-          ) : (
-            <ProductShowcase
-              pageKey={page.key}
-              pointer={pointer}
-              reducedMotion={reducedMotion}
-            />
-          )}
+          <ProductShowcase
+            pageKey={page.key}
+            pointer={pointer}
+            reducedMotion={reducedMotion}
+          />
         </div>
       </section>
 
-      {isPureDoc ? null : (
-        <ProductDetails pageKey={page.key} reducedMotion={reducedMotion} />
-      )}
+      <ProductDetails pageKey={page.key} reducedMotion={reducedMotion} />
       {page.key === "cli" ? <CliOperationalDetails /> : null}
-      {doc ? <DocsArticle doc={doc} reducedMotion={reducedMotion} /> : null}
     </main>
   );
 }
@@ -609,7 +589,7 @@ export function OperatorShowcase({
             })}
           </div>
           <Button asChild variant="coral" className="mt-6 rounded-xl">
-            <a href="/compatibility.html">
+            <a href="/compatibility">
               Review compatibility
               <ArrowRight data-icon="inline-end" />
             </a>
@@ -853,10 +833,10 @@ export function SiteHeader({ activePath }: { activePath?: string } = {}) {
         </nav>
         <div className="flex shrink-0 items-center gap-2">
           <Button asChild variant="outline" className="hidden bg-white sm:inline-flex">
-            <a href="/operator.html">Log in</a>
+            <a href="/operator">Log in</a>
           </Button>
           <Button asChild className="hidden sm:inline-flex">
-            <a href="/quickstart.html">Start alpha</a>
+            <a href="/getting-started">Get started</a>
           </Button>
         </div>
       </div>
@@ -865,110 +845,6 @@ export function SiteHeader({ activePath }: { activePath?: string } = {}) {
 }
 
 
-export function ProductStatus() {
-  return (
-    <div className="rounded-[1.75rem] border border-primary/10 bg-card p-7 shadow-card sm:p-10 lg:p-12">
-      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-        <SectionIntro
-          eyebrow="Product status"
-          title="Experimental hard-OTA tier, proven with fresh users."
-          body="Soroq delivers hard OTA updates today as an experimental tier. This is not an App Store or Play production approval, and it is not a claim of parity with any other OTA product."
-        />
-        <Badge variant="outline" className="w-fit bg-white">
-          Experimental hard-OTA tier
-        </Badge>
-      </div>
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {productStatusRows.map((row) => {
-          const Icon = row.icon;
-          return (
-            <div
-              key={row.platform}
-              className="rounded-2xl border border-primary/10 bg-white p-5 shadow-soft"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-2.5 text-lg font-bold text-foreground">
-                  <Icon className="size-5 text-coral" />
-                  {row.platform}
-                </span>
-                <span className={`rounded-full px-3 py-1 text-xs font-bold ${row.tone}`}>
-                  {row.state}
-                </span>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{row.detail}</p>
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-5 flex gap-3 rounded-2xl border border-coral/25 bg-coral/[0.07] p-4">
-        <AlertCircle className="mt-0.5 size-5 shrink-0 text-coral" />
-        <p className="text-sm leading-6 text-muted-foreground">
-          No App Store or Play production approval is claimed. Hard OTA is an experimental
-          tier; use it for testing and controlled rollouts, not as a substitute for store
-          review.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-export function HeroCopy({ shouldReduceMotion }: { shouldReduceMotion: boolean | null }) {
-  return (
-    <motion.div
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 18 }}
-      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={{ duration: 0.7 }}
-      className="relative z-10 flex max-w-3xl flex-col gap-7"
-    >
-      <Badge className="w-fit rounded-full bg-accent px-3 py-1 text-accent-foreground">
-        Android public-alpha OTA control plane
-      </Badge>
-      <div className="flex flex-col gap-5">
-        <h1 className="max-w-4xl text-5xl font-bold leading-[1.02] tracking-normal text-foreground sm:text-6xl lg:text-7xl">
-          Move eligible Flutter asset/config fixes without another APK.
-        </h1>
-        <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-          Soroq gives mobile teams a hosted dashboard and CLI for safe OTA
-          updates: exact base matching, signed asset/config patches, staged rollout,
-          patch-health, and rollback.
-        </p>
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button asChild size="lg" className="h-12 rounded-xl px-6">
-          <a href="/cli">
-            Install Soroq
-            <ArrowRight data-icon="inline-end" />
-          </a>
-        </Button>
-        <Button asChild size="lg" variant="outline" className="h-12 rounded-xl bg-white px-6">
-          <a href="/getting-started">Read the docs</a>
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <a
-          href="/android-quickstart"
-          className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-primary/10 bg-white/70 px-3 py-2 text-sm font-medium text-foreground shadow-soft transition-colors hover:bg-accent"
-        >
-          <Smartphone className="size-4 text-coral" />
-          Android quickstart
-        </a>
-        <a
-          href="/ios-quickstart"
-          className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-primary/10 bg-white/70 px-3 py-2 text-sm font-medium text-foreground shadow-soft transition-colors hover:bg-accent"
-        >
-          <Apple className="size-4 text-coral" />
-          iOS quickstart
-        </a>
-      </div>
-      <MobileProductCard reducedMotion={shouldReduceMotion} />
-      <div className="hidden max-w-xl grid-cols-1 gap-2 sm:grid sm:grid-cols-3">
-        <HeroFact icon={CheckCircle2} label="Exact release" />
-        <HeroFact icon={ShieldCheck} label="Signed manifest" />
-        <HeroFact icon={RotateCcw} label="Rollback ready" />
-      </div>
-    </motion.div>
-  );
-}
 
 export function HeroFact({
   icon: Icon,
@@ -985,408 +861,6 @@ export function HeroFact({
   );
 }
 
-export function PatchStreamHero({
-  pointer,
-  reducedMotion,
-}: {
-  pointer: PointerMotion;
-  reducedMotion: boolean | null;
-}) {
-  return (
-    <motion.div
-      className="relative hidden min-h-[480px] md:block lg:min-h-[620px]"
-      style={reducedMotion ? undefined : { x: pointer.sceneX, y: pointer.softY }}
-      aria-label="Soroq SaaS dashboard showing Android public-alpha OTA patch rollout"
-    >
-      <motion.div
-        className="absolute inset-x-0 top-10 h-[360px] overflow-hidden rounded-[2rem]"
-        initial={reducedMotion ? false : { opacity: 0, scale: 0.96 }}
-        animate={reducedMotion ? undefined : { opacity: 1, scale: 1 }}
-        transition={{ duration: 0.75, delay: 0.1 }}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_55%,rgba(255,126,114,0.88),transparent_34%),radial-gradient(circle_at_62%_40%,rgba(183,127,236,0.78),transparent_33%),radial-gradient(circle_at_88%_24%,rgba(126,154,255,0.78),transparent_35%)]" />
-        {heroPixels.map(([left, top, width, height], index) => (
-          <motion.span
-            key={`${left}-${top}-${index}`}
-            className="absolute rounded-[0.55rem] bg-page shadow-[0_0_0_1px_rgba(255,255,255,0.55)]"
-            style={{
-              left: `${left}%`,
-              top: `${top}%`,
-              width: `${width}%`,
-              height: `${height}%`,
-            }}
-            animate={
-              reducedMotion
-                ? undefined
-                : {
-                    y: [0, -7, 0],
-                    opacity: [0.86, 1, 0.86],
-                  }
-            }
-            transition={{
-              duration: 3.6 + (index % 5) * 0.32,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: index * 0.05,
-            }}
-          />
-        ))}
-      </motion.div>
-
-      <AnimatedOtaFlight reducedMotion={reducedMotion} />
-
-      <ReleaseStatusCard reducedMotion={reducedMotion} />
-
-      <motion.div
-        className="absolute bottom-4 left-2 right-2 z-30 overflow-hidden rounded-[1.75rem] border border-primary/10 bg-white p-4 shadow-[0_26px_80px_rgba(35,31,32,0.18)] sm:left-10 sm:right-8 sm:p-5 lg:left-16"
-        initial={reducedMotion ? false : { opacity: 0, y: 26 }}
-        animate={reducedMotion ? undefined : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.2 }}
-      >
-        <div className="flex items-center justify-between gap-4 border-b border-primary/10 pb-4">
-          <div>
-            <p className="font-mono text-xs uppercase text-muted-foreground">
-              Control plane
-            </p>
-            <h2 className="text-2xl font-bold">Android patch rollout</h2>
-          </div>
-        </div>
-        <div className="grid gap-3 py-4 md:grid-cols-3">
-          <LiveDashboardMetric
-            label="Rollout"
-            value="Staged"
-            helper="cohort receiving files"
-            status="staged cohort"
-          />
-          <LiveDashboardMetric
-            label="Health"
-            value="Receipts"
-            helper="accepted clients"
-            status="healthy signal"
-          />
-          <LiveDashboardMetric
-            label="Rollback"
-            value="Guarded"
-            helper="one command away"
-            status="server-side"
-          />
-        </div>
-        <div className="grid gap-3 rounded-2xl bg-secondary/70 p-3 md:grid-cols-[1fr_0.8fr]">
-          <div className="rounded-xl bg-white/[0.92] p-4 ring-1 ring-primary/8">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-xs text-muted-foreground">
-                soroq patch publish
-              </span>
-              <CheckCircle2 className="size-4 text-coral" />
-            </div>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              base matched, manifest signed, delivery ticket issued
-            </p>
-          </div>
-          <div className="rounded-xl border border-primary/8 bg-white/[0.92] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-bold">Base APK stays clean</p>
-              <span className="rounded-full border border-primary/10 bg-secondary px-2 py-1 font-mono text-[0.65rem] uppercase text-muted-foreground">
-                unchanged
-              </span>
-            </div>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              OTA artifacts are hosted outside the store build.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-export function ReleaseStatusCard({
-  reducedMotion,
-}: {
-  reducedMotion: boolean | null;
-}) {
-  return (
-    <motion.div
-      className="absolute -top-8 right-3 z-40 hidden w-[32%] min-w-[285px] rounded-[1.1rem] border border-white/75 bg-white p-2.5 shadow-card xl:block"
-      animate={reducedMotion ? undefined : { y: [0, -5, 0] }}
-      transition={{ duration: 5.8, repeat: Infinity, ease: "easeInOut" }}
-      whileHover={reducedMotion ? undefined : { y: -6, scale: 1.01 }}
-    >
-      <div className="mb-1.5 flex items-center justify-between gap-3">
-        <span className="font-mono text-[0.68rem] uppercase tracking-normal text-muted-foreground">
-          Release status
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-success px-2 py-0.5 text-[0.68rem] font-bold text-[#15351f]">
-          <span className="size-1.5 rounded-full bg-signal" aria-hidden="true" />
-          Live
-        </span>
-      </div>
-
-      <div className="overflow-hidden rounded-xl bg-[#2c2825] p-2.5 text-white">
-        <div className="flex items-center justify-between gap-2">
-          <p className="font-mono text-[0.68rem] text-white/55">app-release.aab</p>
-          <span className="rounded-full bg-white/10 px-2 py-0.5 font-mono text-[0.56rem] uppercase text-white/62">
-            stable / staged
-          </span>
-        </div>
-        <p className="mt-1.5 whitespace-nowrap text-[0.95rem] font-bold leading-tight">
-          Discovered patch in rollout
-        </p>
-
-        <div className="relative mt-1.5 h-[38px] overflow-hidden rounded-lg border border-white/8 bg-white/[0.04] px-2.5">
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-2.5 bg-gradient-to-b from-[#2c2825] to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2.5 bg-gradient-to-t from-[#2c2825] to-transparent" />
-          <motion.div
-            className="will-change-transform"
-            animate={
-              reducedMotion
-                ? undefined
-                : {
-                    y: [0, 0, -38, -38, -76, -76, -114, -114, -152],
-                  }
-            }
-            transition={{
-              duration: 12.8,
-              repeat: Infinity,
-              ease: [0.72, 0, 0.28, 1],
-              times: [0, 0.13, 0.24, 0.37, 0.48, 0.61, 0.72, 0.87, 1],
-            }}
-          >
-            {releaseFeed.map((item, index) => (
-              <div
-                key={`${item.label}-${index}`}
-                className="flex h-[38px] flex-col justify-center"
-              >
-                <p className="text-[0.72rem] font-bold leading-4">
-                  {item.label}
-                </p>
-                <p className="truncate font-mono text-[0.58rem] text-white/45">
-                  {item.detail}
-                </p>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
-          <div className="absolute inset-y-0 left-0 w-[72%] rounded-full bg-white/10" />
-          <motion.div
-            className="absolute inset-y-0 left-0 w-12 rounded-full bg-coral"
-            animate={
-              reducedMotion
-                ? undefined
-                : { x: ["-120%", "520%"], opacity: [0, 1, 1, 0] }
-            }
-            transition={{
-              duration: 4.6,
-              repeat: Infinity,
-              ease: "easeInOut",
-              repeatDelay: 0.4,
-            }}
-          >
-            <span className="absolute inset-y-0 right-0 w-7 rounded-full bg-white/35 blur-[1px]" />
-          </motion.div>
-        </div>
-        <div className="mt-1.5 flex items-center justify-between text-[0.58rem] font-medium text-white/45">
-          <span>selected patch</span>
-          <span>health from receipts</span>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-export function MobileProductCard({
-  reducedMotion,
-}: {
-  reducedMotion: boolean | null;
-}) {
-  return (
-    <div className="overflow-hidden rounded-[1.35rem] border border-primary/10 bg-white/90 p-4 shadow-card md:hidden">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="font-mono text-[0.68rem] uppercase text-muted-foreground">
-            Control plane
-          </p>
-          <h2 className="text-xl font-bold">Patch rollout</h2>
-        </div>
-        <span className="rounded-full bg-success px-2 py-1 text-xs font-bold">
-          live
-        </span>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <DashboardMetric label="Rollout" value="Staged" />
-        <DashboardMetric label="Health" value="API" />
-        <DashboardMetric label="Rollback" value="Guarded" />
-      </div>
-      <div className="mt-3 rounded-2xl bg-gradient-to-r from-coral/24 via-violet/22 to-blueprint/18 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="font-mono text-[0.68rem] uppercase text-muted-foreground">
-            OTA flight
-          </p>
-          <Wifi className="size-4 text-coral" />
-        </div>
-        <div className="flex items-center gap-2">
-          {["diff", "sig", "bundle"].map((file, index) => (
-            <motion.span
-              key={file}
-              className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2 py-1 text-[0.68rem] font-bold shadow-soft"
-              animate={reducedMotion ? undefined : { y: [0, -4, 0] }}
-              transition={{
-                duration: 1.9,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: index * 0.18,
-              }}
-            >
-              <FileCode2 className="size-3 text-coral" />
-              {file}
-            </motion.span>
-          ))}
-        </div>
-        <p className="mt-3 text-sm font-semibold">
-          files staged over the air for next cold start
-        </p>
-      </div>
-    </div>
-  );
-}
-
-export function AnimatedOtaFlight({
-  reducedMotion,
-}: {
-  reducedMotion: boolean | null;
-}) {
-  return (
-    <div
-      className="pointer-events-none absolute inset-0 z-20 hidden lg:block"
-      aria-hidden="true"
-    >
-      <svg
-        className="absolute left-[1%] top-[14%] h-[150px] w-[46%]"
-        viewBox="0 0 620 210"
-        fill="none"
-      >
-        <motion.path
-          d="M12 158 C148 70 268 188 418 86 C488 38 552 52 604 20"
-          stroke="url(#otaRoute)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeDasharray="8 12"
-          initial={reducedMotion ? false : { pathLength: 0.2, opacity: 0.25 }}
-          animate={
-            reducedMotion
-              ? undefined
-              : { pathLength: [0.2, 1, 0.2], opacity: [0.2, 0.72, 0.2] }
-          }
-          transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <defs>
-          <linearGradient id="otaRoute" x1="0" x2="620" y1="170" y2="20">
-            <stop stopColor="#ff7f68" />
-            <stop offset="0.52" stopColor="#a98bef" />
-            <stop offset="1" stopColor="#96a6ff" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      {otaFiles.map((file) => (
-        <motion.div
-          key={file.label}
-          data-ota-file
-          className={`absolute ${file.start} inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[0.68rem] font-bold text-primary shadow-soft backdrop-blur-md xl:text-xs`}
-          initial={{ x: file.x[0], y: file.y[0], rotate: file.rotate[0], opacity: 0 }}
-          animate={
-            reducedMotion
-              ? undefined
-              : {
-                  x: [...file.x, file.x[3]],
-                  y: [...file.y, file.y[3]],
-                  rotate: [...file.rotate, file.rotate[3]],
-                  opacity: [0, 1, 1, 0.92, 0],
-                  scale: [0.94, 1, 1, 0.98, 0.94],
-                }
-          }
-          transition={{
-            x: {
-              duration: 8,
-              repeat: Infinity,
-              repeatDelay: 0.4,
-              ease: "linear",
-              delay: file.delay,
-              times: [0, 0.14, 0.5, 0.82, 1],
-            },
-            y: {
-              duration: 8,
-              repeat: Infinity,
-              repeatDelay: 0.4,
-              ease: "linear",
-              delay: file.delay,
-              times: [0, 0.14, 0.5, 0.82, 1],
-            },
-            rotate: {
-              duration: 8,
-              repeat: Infinity,
-              repeatDelay: 0.4,
-              ease: "linear",
-              delay: file.delay,
-              times: [0, 0.14, 0.5, 0.82, 1],
-            },
-            opacity: {
-              duration: 8,
-              repeat: Infinity,
-              repeatDelay: 0.4,
-              ease: "easeInOut",
-              delay: file.delay,
-              times: [0, 0.14, 0.68, 0.88, 1],
-            },
-            scale: {
-              duration: 8,
-              repeat: Infinity,
-              repeatDelay: 0.4,
-              ease: "easeInOut",
-              delay: file.delay,
-              times: [0, 0.14, 0.68, 0.88, 1],
-            },
-          }}
-        >
-          <FileCode2 className="size-3.5 text-coral" />
-          {file.label}
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-export function LiveDashboardMetric({
-  label,
-  value,
-  helper,
-  status,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-  status: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-primary/10 bg-white/[0.92] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-mono text-[0.7rem] uppercase text-muted-foreground">
-          {label}
-        </p>
-      </div>
-      <p className="mt-1 text-2xl font-bold">{value}</p>
-      <p className="mt-2 text-[0.72rem] leading-4 text-muted-foreground">
-        {helper}
-      </p>
-      <p className="mt-3 w-fit rounded-full bg-secondary px-2.5 py-1 font-mono text-[0.62rem] uppercase tracking-[0.08em] text-muted-foreground">
-        {status}
-      </p>
-    </div>
-  );
-}
-
 export function DashboardMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-primary/10 bg-white px-4 py-3">
@@ -1398,239 +872,6 @@ export function DashboardMetric({ label, value }: { label: string; value: string
   );
 }
 
-export function ProofBand() {
-  return (
-    <section className="mx-5 mb-5 rounded-[1.45rem] bg-primary p-4 text-primary-foreground sm:mx-8 sm:mb-8 sm:p-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-white/55">
-          Built for release teams that need proof, not promises.
-        </p>
-        <Badge className="bg-white text-primary">SaaS-ready control plane</Badge>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {proofStats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border border-white/10 bg-white/[0.06] p-5"
-          >
-            <p className="text-3xl font-bold">{stat.value}</p>
-            <p className="mt-2 text-sm leading-6 text-white/58">{stat.label}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export function PlatformCard({
-  icon: Icon,
-  tone,
-  label,
-  title,
-  body,
-  action,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  tone: "coral" | "violet" | "dark";
-  label: string;
-  title: string;
-  body: string;
-  action: string;
-}) {
-  const topTone =
-    tone === "dark"
-      ? "bg-primary"
-      : tone === "coral"
-        ? "bg-coral-soft"
-        : "bg-violet-soft";
-  const bottomTone =
-    tone === "dark" ? "bg-primary text-primary-foreground" : "bg-white";
-
-  return (
-    <Card className="overflow-hidden rounded-[1.35rem] border-primary/10 bg-white p-0 shadow-card">
-      <div className={`relative grid min-h-44 place-items-center ${topTone}`}>
-        <PixelGlyph tone={tone} />
-        <div className="absolute right-4 top-4 rounded-full bg-white/75 px-3 py-1 text-xs font-bold text-primary shadow-soft">
-          {label}
-        </div>
-      </div>
-      <div className={`flex flex-1 flex-col gap-5 p-6 ${bottomTone}`}>
-        <Icon className="size-6 opacity-70" />
-        <div>
-          <h3 className="text-2xl font-bold">{title}</h3>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">{body}</p>
-        </div>
-        <span className="mt-auto inline-flex items-center gap-2 text-sm font-bold">
-          {action}
-          <ArrowRight className="size-4" />
-        </span>
-      </div>
-    </Card>
-  );
-}
-
-export function PixelGlyph({ tone }: { tone: "coral" | "violet" | "dark" }) {
-  const fill =
-    tone === "dark" ? "bg-white" : tone === "coral" ? "bg-coral" : "bg-violet";
-  const cells = [
-    "col-start-2 row-start-1",
-    "col-start-3 row-start-1",
-    "col-start-1 row-start-2",
-    "col-start-2 row-start-2",
-    "col-start-4 row-start-2",
-    "col-start-2 row-start-3",
-    "col-start-3 row-start-3",
-    "col-start-4 row-start-3",
-    "col-start-5 row-start-3",
-    "col-start-1 row-start-4",
-    "col-start-3 row-start-4",
-  ];
-
-  return (
-    <div className="grid grid-cols-5 grid-rows-4 gap-2">
-      {cells.map((cell) => (
-        <span
-          key={cell}
-          className={`size-7 rounded-md ${fill} shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] ${cell}`}
-        />
-      ))}
-    </div>
-  );
-}
-
-export function WorkflowStep({
-  icon: Icon,
-  index,
-  title,
-  body,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  index: number;
-  title: string;
-  body: string;
-}) {
-  return (
-    <article className="flex min-h-72 flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.06] p-5">
-      <div className="flex items-start justify-between gap-4">
-        <span className="grid size-11 place-items-center rounded-full bg-white text-primary">
-          {String(index).padStart(2, "0")}
-        </span>
-        <Icon className="size-6 text-white/55" />
-      </div>
-      <div>
-        <h3 className="text-xl font-bold">{title}</h3>
-        <p className="mt-3 text-sm leading-6 text-white/58">{body}</p>
-      </div>
-    </article>
-  );
-}
-
-export function HealthConsole() {
-  return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-primary/10 bg-white p-5 shadow-card">
-      <div className="absolute -right-16 -top-20 size-56 rounded-full bg-coral/18 blur-3xl" />
-      <div className="absolute -bottom-24 left-8 size-56 rounded-full bg-violet/18 blur-3xl" />
-      <div className="relative">
-        <div className="mb-5 flex items-center justify-between">
-          <div>
-            <p className="font-mono text-xs uppercase text-muted-foreground">
-              Patch health
-            </p>
-            <h3 className="text-2xl font-bold">Live rollout signal</h3>
-          </div>
-          <span className="grid size-11 place-items-center rounded-xl bg-primary text-primary-foreground">
-            <BarChart3 className="size-5" />
-          </span>
-        </div>
-        <div className="grid gap-3">
-          {safetyRows.map((row) => (
-            <div
-              key={row.label}
-              className="grid grid-cols-[0.85fr_auto] items-center gap-4 rounded-2xl border border-primary/8 bg-page p-4"
-            >
-              <div>
-                <p className="font-mono text-xs uppercase text-muted-foreground">
-                  {row.label}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">{row.meta}</p>
-              </div>
-              <strong className="text-2xl font-bold">{row.value}</strong>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 rounded-2xl bg-primary p-4 text-primary-foreground">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-xs uppercase text-white/50">
-              auto decision
-            </span>
-            <LockKeyhole className="size-4 text-coral" />
-          </div>
-          <p className="mt-3 text-xl font-bold">
-            Hold the cohort until failures clear.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function PricingCard({
-  title,
-  price,
-  detail,
-  features,
-  cta,
-  href,
-  featured,
-}: {
-  title: string;
-  price: string;
-  detail: string;
-  features: string[];
-  cta: string;
-  href: string;
-  featured: boolean;
-}) {
-  return (
-    <Card
-      className={`rounded-[1.35rem] border-primary/10 p-0 shadow-card ${
-        featured ? "bg-primary text-primary-foreground" : "bg-white"
-      }`}
-    >
-      <CardHeader className="gap-4 p-6">
-        <CardDescription className={featured ? "text-white/55" : undefined}>
-          {title}
-        </CardDescription>
-        <CardTitle className="text-4xl">{price}</CardTitle>
-        <p className={featured ? "text-sm leading-6 text-white/58" : "text-sm leading-6 text-muted-foreground"}>
-          {detail}
-        </p>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-6 p-6 pt-0">
-        <ul className="grid gap-3">
-          {features.map((feature) => (
-            <li key={feature} className="flex items-center gap-3 text-sm">
-              <CheckCircle2 className={featured ? "size-4 text-coral" : "size-4 text-coral"} />
-              <span className={featured ? "text-white/72" : "text-muted-foreground"}>
-                {feature}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <Button
-          asChild
-          variant={featured ? "coral" : "outline"}
-          className={featured ? "mt-auto rounded-xl" : "mt-auto rounded-xl bg-white"}
-        >
-          <a href={href}>
-            {cta}
-            <ArrowRight data-icon="inline-end" />
-          </a>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
 
 export function SectionIntro({
   eyebrow,
@@ -1670,14 +911,12 @@ export function SectionIntro({
 
 export function MarketingHome() {
   const shouldReduceMotion = useReducedMotion();
-  const pointer = usePointerMotion(!shouldReduceMotion);
   const { scrollYProgress } = useScroll();
   const progressScale = useSpring(scrollYProgress, {
     stiffness: 120,
     damping: 26,
     mass: 0.24,
   });
-  const heroShift = useTransform(scrollYProgress, [0, 0.22], [0, -30]);
   const reveal = (delay = 0) =>
     shouldReduceMotion
       ? {}
@@ -1685,129 +924,492 @@ export function MarketingHome() {
           initial: { opacity: 0, y: 22 },
           whileInView: { opacity: 1, y: 0 },
           viewport: { once: true, amount: 0.2 },
-          transition: { duration: 0.58, delay },
+          transition: { duration: 0.55, delay },
         };
 
+  const installCommand = `curl --proto '=https' --tlsv1.2 ${PRODUCT.installScriptUrl} -sSf | bash`;
+
+  const stageAccent: Record<(typeof releaseStages)[number]["tone"], string> = {
+    action: "text-blueprint",
+    verified: "text-signal",
+    staged: "text-warning",
+    rollback: "text-coral",
+  };
+  const stageDot: Record<(typeof releaseStages)[number]["tone"], string> = {
+    action: "bg-blueprint",
+    verified: "bg-signal",
+    staged: "bg-warning",
+    rollback: "bg-coral",
+  };
+
+  const heroStatus: Array<{ label: string; value: string; dot: string; tone: string }> = [
+    { label: "Base release", value: "matched", dot: "bg-signal", tone: "text-signal" },
+    { label: "Manifest", value: "signed", dot: "bg-signal", tone: "text-signal" },
+    { label: "Rollout", value: "staged 20%", dot: "bg-warning", tone: "text-warning" },
+    { label: "Health", value: "accepted", dot: "bg-signal", tone: "text-signal" },
+    { label: "Rollback", value: "armed", dot: "bg-coral", tone: "text-coral" },
+  ];
+
   return (
-    <div className="surface-grid min-h-screen overflow-hidden">
+    <div className="deck-grid min-h-screen overflow-hidden text-white/90">
       <motion.div
-        className="fixed left-0 top-0 z-50 h-1 origin-left bg-coral"
+        className="fixed left-0 top-0 z-50 h-1 origin-left bg-signal"
         style={{ scaleX: progressScale }}
       />
-      <main>
-        <section className="min-h-screen bg-page">
+      <SiteHeader />
+      <main className="mx-auto max-w-[1240px] px-5 sm:px-8">
+        {/* HERO — What is Soroq + where to start */}
+        <section className="grid gap-10 pb-16 pt-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pt-16">
           <motion.div
-            style={shouldReduceMotion ? undefined : { y: heroShift }}
-            className="min-h-screen overflow-hidden bg-page"
+            className="flex flex-col gap-6"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 18 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <SiteHeader />
-            <div className="relative grid min-h-[760px] grid-cols-1 gap-10 px-7 pb-10 pt-16 sm:px-12 lg:grid-cols-[0.78fr_1.22fr] lg:items-center lg:px-20 lg:pt-20">
-              <HeroCopy shouldReduceMotion={shouldReduceMotion} />
-              <PatchStreamHero pointer={pointer} reducedMotion={shouldReduceMotion} />
-            </div>
-            <ProofBand />
-          </motion.div>
-        </section>
-
-        <motion.section
-          {...reveal()}
-          id="platform"
-          className="mx-auto grid max-w-[1510px] gap-5 px-3 py-10 sm:px-6 lg:grid-cols-[0.8fr_1.2fr]"
-        >
-          <SectionIntro
-            eyebrow="SaaS platform"
-            title="A control plane your Flutter team can understand in one pass."
-            body="Soroq is not selling vague magic. It is a hosted release-control layer for eligible Android public-alpha OTA fixes: register a base, publish a signed asset/config patch, watch health, and roll back from the same product surface."
-          />
-          <div className="grid gap-4 md:grid-cols-3">
-            {platformCards.map((card) => (
-              <PlatformCard key={card.title} {...card} />
-            ))}
-          </div>
-        </motion.section>
-
-        <motion.section
-          {...reveal()}
-          id="workflow"
-          className="mx-auto max-w-[1510px] px-3 py-10 sm:px-6"
-        >
-          <div className="overflow-hidden rounded-[1.75rem] bg-primary text-primary-foreground">
-            <div className="grid gap-8 p-7 sm:p-10 lg:grid-cols-[0.72fr_1.28fr] lg:p-14">
-              <SectionIntro
-                eyebrow="Workflow"
-                inverse
-                title="From store release to safe Android public-alpha patch."
-                body="A developer should know what happens before they trust the product. This path is intentionally readable: exact release, signed eligible bundle, staged cohort, health signal, rollback."
-              />
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {workflowSteps.map((step, index) => (
-                  <WorkflowStep key={step.title} index={index + 1} {...step} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section
-          {...reveal()}
-          id="safety"
-          className="mx-auto grid max-w-[1510px] gap-5 px-3 py-10 sm:px-6 lg:grid-cols-[1fr_0.9fr]"
-        >
-          <div className="rounded-[1.75rem] border border-primary/10 bg-card p-7 shadow-card sm:p-10 lg:p-14">
-            <Badge variant="outline" className="mb-6 w-fit bg-white">
-              Patch safety
-            </Badge>
-            <h2 className="max-w-3xl text-4xl font-bold leading-[1.02] tracking-normal md:text-6xl">
-              When a rollout goes bad, the product should already know.
-            </h2>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Health and rollback are not secondary pages. Soroq keeps the
-              operational story attached to the patch so a team can stop a bad
-              release path without guessing which script to run.
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-signal/30 bg-signal/10 px-3 py-1.5 font-mono text-[0.7rem] uppercase tracking-wide text-signal">
+              <ShieldCheck className="size-3.5" />
+              Signed hard-OTA release control
+            </span>
+            <h1 className="max-w-2xl text-5xl font-bold leading-[1.03] tracking-tight text-white sm:text-6xl">
+              Ship verified Flutter fixes after release.
+            </h1>
+            <p className="max-w-xl text-lg leading-8 text-white/60">
+              Soroq is a hosted control plane and CLI for signed hard-OTA patches:
+              match the exact base build, sign the patch, stage the rollout, watch
+              patch health, and roll back &mdash; across the currently proven Android
+              and experimental iOS paths.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg">
-                <a href="/operator.html">
-                  Open operator surface
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg" className="h-12 rounded-xl bg-signal px-6 text-[#0d1f15] hover:bg-signal/90">
+                <a href="/getting-started">
+                  Get started
                   <ArrowRight data-icon="inline-end" />
                 </a>
               </Button>
-              <Button asChild size="lg" variant="outline">
-                <a href="/compatibility.html">Read compatibility limits</a>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="h-12 rounded-xl border-white/15 bg-white/[0.04] px-6 text-white hover:bg-white/[0.1]"
+              >
+                <a href="https://docs.soroq.dev/">Read documentation</a>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="ghost"
+                className="h-12 rounded-xl px-5 text-white/70 hover:bg-white/[0.06] hover:text-white"
+              >
+                <a href="/cli">
+                  <TerminalSquare data-icon="inline-start" />
+                  Install CLI
+                </a>
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {[
+                { icon: CheckCircle2, label: "Exact base match" },
+                { icon: LockKeyhole, label: "Signed manifest" },
+                { icon: RotateCcw, label: "Server-side rollback" },
+              ].map(({ icon: Icon, label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white/70"
+                >
+                  <Icon className="size-4 text-signal" />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            className="relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#12140f]/90 p-5 shadow-card ring-1 ring-white/5 sm:p-6"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 22 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <span className="inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase text-white/45">
+                <RadioTower className="size-3.5 text-signal" />
+                patch status
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/15 px-2.5 py-1 font-mono text-[0.62rem] uppercase text-signal">
+                <span className="size-1.5 rounded-full bg-signal" aria-hidden="true" />
+                serving
+              </span>
+            </div>
+            <p className="mt-4 font-mono text-[0.72rem] text-white/40">patch-4f2a &middot; stable channel</p>
+            <div className="mt-3 grid gap-2">
+              {heroStatus.map((row, index) => (
+                <motion.div
+                  key={row.label}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/[0.04] px-4 py-3"
+                  animate={
+                    shouldReduceMotion ? undefined : { opacity: [0.7, 1, 0.7] }
+                  }
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: index * 0.3,
+                  }}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className={`size-2 rounded-full ${row.dot}`} aria-hidden="true" />
+                    <span className="text-sm text-white/70">{row.label}</span>
+                  </span>
+                  <span className={`font-mono text-xs uppercase ${row.tone}`}>{row.value}</span>
+                </motion.div>
+              ))}
+            </div>
+            <div className="mt-4 rounded-xl border border-coral/25 bg-coral/[0.08] px-4 py-3">
+              <p className="font-mono text-[0.62rem] uppercase text-coral/80">one command away</p>
+              <p className="mt-1 font-mono text-sm text-white/80">$ soroq rollback --patch-id patch-4f2a</p>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* WHAT IT UPDATES — Q2 */}
+        <motion.section {...reveal()} className="border-t border-white/8 py-14">
+          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-wide text-signal">What it updates</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl">
+                Signed patches for eligible Flutter changes.
+              </h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                {
+                  icon: FileCode2,
+                  title: "Eligible Flutter code and assets",
+                  body: "Delivered as a signed hard-OTA patch tied to one exact base build.",
+                },
+                {
+                  icon: PackageCheck,
+                  title: "Android code, iOS engine",
+                  body: "Android is code hard-OTA; iOS patches a running Flutter engine on device (experimental).",
+                },
+                {
+                  icon: ShieldCheck,
+                  title: "Not native or store-level",
+                  body: "Native changes still ship through the app store. Soroq does not rewrite the whole app.",
+                },
+              ].map(({ icon: Icon, title, body }) => (
+                <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                  <Icon className="size-5 text-signal" />
+                  <h3 className="mt-4 text-base font-bold text-white">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/55">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.section>
+
+        {/* PLATFORMS — Q3, equal-weight Android + iOS */}
+        <motion.section {...reveal()} id="platforms" className="border-t border-white/8 py-14">
+          <div className="mb-8 flex flex-col gap-3">
+            <p className="font-mono text-xs uppercase tracking-wide text-signal">Platforms</p>
+            <h2 className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-4xl">
+              Two platforms, one release workflow.
+            </h2>
+            <p className="max-w-2xl text-base leading-7 text-white/55">
+              Android and iOS run the same build, sign, roll out, and roll back path. Both
+              are experimental today, with the boundaries called out honestly.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {homePlatforms.map((platform) => {
+              const Icon = platform.icon;
+              return (
+                <div
+                  key={platform.name}
+                  className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-6"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-3">
+                      <span className="grid size-11 place-items-center rounded-xl border border-white/12 bg-white/[0.06]">
+                        <Icon className="size-5 text-white" />
+                      </span>
+                      <span>
+                        <span className="block text-xl font-bold text-white">{platform.name}</span>
+                        <span className="block font-mono text-[0.68rem] uppercase text-white/45">
+                          {platform.kind}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 font-mono text-[0.6rem] uppercase text-warning">
+                      experimental
+                    </span>
+                  </div>
+                  <p className="mt-5 text-sm leading-6 text-white/60">{platform.body}</p>
+                  <ul className="mt-5 grid gap-2">
+                    {platform.points.map((point) => (
+                      <li key={point} className="flex items-center gap-2.5 text-sm text-white/70">
+                        <CheckCircle2 className="size-4 shrink-0 text-signal" />
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-5 font-mono text-[0.66rem] uppercase leading-5 text-white/40">
+                    {platform.tier}
+                  </p>
+                  <a
+                    href={platform.href}
+                    className="focus-ring mt-6 inline-flex w-fit items-center gap-2 text-sm font-bold text-signal hover:text-signal/80"
+                  >
+                    {platform.name} quickstart
+                    <ArrowRight className="size-4" />
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        </motion.section>
+
+        {/* WORKFLOW — Q4, five-stage release flow */}
+        <motion.section {...reveal()} id="workflow" className="border-t border-white/8 py-14">
+          <div className="mb-8 flex flex-col gap-3">
+            <p className="font-mono text-xs uppercase tracking-wide text-signal">Workflow</p>
+            <h2 className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-4xl">
+              Build &rarr; Sign &rarr; Roll out &rarr; Observe &rarr; Roll back.
+            </h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {releaseStages.map((stage) => (
+              <div
+                key={stage.n}
+                className="flex min-h-52 flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-sm text-white/40">{stage.n}</span>
+                  <span className={`size-2.5 rounded-full ${stageDot[stage.tone]}`} aria-hidden="true" />
+                </div>
+                <h3 className={`mt-6 text-lg font-bold ${stageAccent[stage.tone]}`}>{stage.label}</h3>
+                <p className="mt-2 text-sm leading-6 text-white/55">{stage.body}</p>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* TRUST — Q5 */}
+        <motion.section {...reveal()} id="trust" className="border-t border-white/8 py-14">
+          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-wide text-signal">Trust</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl">
+                Why a patch is safe to apply.
+              </h2>
+              <p className="mt-4 max-w-md text-base leading-7 text-white/55">
+                Verification is not a feature bolted on later. A patch that cannot be
+                verified never runs &mdash; Soroq fails closed instead of guessing.
+              </p>
+            </div>
+            <div className="grid gap-3">
+              {trustRows.map((row, index) => {
+                const icons = [ShieldCheck, LockKeyhole, FileCode2];
+                const Icon = icons[index] ?? ShieldCheck;
+                return (
+                  <div
+                    key={row.label}
+                    className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5"
+                  >
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-signal/25 bg-signal/10">
+                      <Icon className="size-5 text-signal" />
+                    </span>
+                    <div>
+                      <h3 className="text-base font-bold text-white">{row.label}</h3>
+                      <p className="mt-1.5 text-sm leading-6 text-white/55">{row.body}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.section>
+
+        {/* ROLLOUT + ROLLBACK — Q6 */}
+        <motion.section {...reveal()} className="border-t border-white/8 py-14">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-warning/25 bg-warning/[0.06] p-6">
+              <div className="flex items-center gap-3">
+                <RadioTower className="size-5 text-warning" />
+                <h3 className="text-xl font-bold text-white">Staged rollout</h3>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-white/60">
+                A patch is served by app, channel, and rollout percentage. Start with a
+                small cohort and expand only after accepted clients stay healthy.
+              </p>
+              <div className="mt-5 flex items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full w-1/5 rounded-full bg-warning" />
+                </div>
+                <span className="font-mono text-xs text-warning">20%</span>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-coral/25 bg-coral/[0.06] p-6">
+              <div className="flex items-center gap-3">
+                <RotateCcw className="size-5 text-coral" />
+                <h3 className="text-xl font-bold text-white">Server-side rollback</h3>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-white/60">
+                One command suppresses the patch server-side. Clients return to the base
+                release on their next patch check &mdash; no new store submission, no waiting.
+              </p>
+              <p className="mt-5 rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-xs text-white/75">
+                $ soroq rollback --patch-id patch-4f2a
+              </p>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* INSTALL — Q7 */}
+        <motion.section {...reveal()} className="border-t border-white/8 py-14">
+          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-wide text-signal">Install</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl">
+                One CLI. No account to try it.
+              </h2>
+              <p className="mt-4 max-w-md text-base leading-7 text-white/55">
+                Installing the CLI and running <span className="font-mono text-white/75">doctor</span> need no
+                login. You only sign in when you are ready to publish a patch.
+              </p>
+              <div className="mt-6 grid gap-2">
+                {toolingRows.map((tool) => (
+                  <div
+                    key={tool.name}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3"
+                  >
+                    <span className="font-mono text-sm text-white/80">{tool.name}</span>
+                    <span className="flex items-center gap-3">
+                      <span className="hidden font-mono text-[0.68rem] uppercase text-white/40 sm:inline">
+                        {tool.note}
+                      </span>
+                      <span className="rounded-full bg-signal/12 px-2.5 py-1 font-mono text-xs text-signal">
+                        {tool.version}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <CommandBlock code={installCommand} />
+              <Button asChild size="lg" className="h-12 w-fit rounded-xl bg-signal px-6 text-[#0d1f15] hover:bg-signal/90">
+                <a href="/cli">
+                  Read the CLI reference
+                  <ArrowRight data-icon="inline-end" />
+                </a>
               </Button>
             </div>
           </div>
-          <HealthConsole />
         </motion.section>
 
-        <motion.section
-          {...reveal()}
-          id="status"
-          className="mx-auto max-w-[1510px] px-3 py-10 sm:px-6"
-        >
-          <ProductStatus />
-        </motion.section>
-
-        <motion.section
-          {...reveal()}
-          id="pricing"
-          className="mx-auto max-w-[1510px] px-3 py-10 pb-20 sm:px-6"
-        >
-          <div className="mb-6 grid gap-4 px-2 lg:grid-cols-[0.72fr_0.55fr] lg:items-end">
-            <SectionIntro
-              eyebrow="Plans"
-              title="Start like a SaaS product, even while the alpha is careful."
-              body="Soroq is a hosted control plane: team workflows, hosted operations, compatibility review, and private deployment conversations."
-            />
-            <p className="text-sm leading-6 text-muted-foreground lg:text-right">
-              Pricing is intentionally framed as alpha access today, not a fake
-              public billing table.
+        {/* BOUNDARY — Q8 */}
+        <motion.section {...reveal()} className="border-t border-white/8 py-14">
+          <div className="mb-6 flex flex-col gap-3">
+            <p className="font-mono text-xs uppercase tracking-wide text-signal">Boundaries</p>
+            <h2 className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-4xl">
+              What moves OTA, and what does not.
+            </h2>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-white/10">
+            {boundaryRows.map(([change, status, detail]) => (
+              <div
+                key={change}
+                className="grid grid-cols-[1fr_auto] items-center gap-4 border-t border-white/8 bg-white/[0.03] px-5 py-4 first:border-t-0 sm:grid-cols-[1.3fr_auto_1.4fr]"
+              >
+                <span className="text-sm font-semibold text-white">{change}</span>
+                <span
+                  className={`w-fit rounded-full px-2.5 py-1 font-mono text-[0.62rem] uppercase ${
+                    status === "OTA"
+                      ? "bg-signal/15 text-signal"
+                      : status === "Blocked"
+                        ? "bg-coral/15 text-coral"
+                        : "bg-white/10 text-white/70"
+                  }`}
+                >
+                  {status}
+                </span>
+                <span className="col-span-2 text-sm text-white/50 sm:col-span-1">{detail}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <AlertCircle className="mt-0.5 size-5 shrink-0 text-warning" />
+            <p className="text-sm leading-6 text-white/55">
+              Hard OTA is an experimental tier. It is not an App Store or Play production
+              approval &mdash; use it for testing and controlled rollouts, not as a substitute
+              for store review.
             </p>
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
-            {pricingCards.map((plan) => (
-              <PricingCard key={plan.title} {...plan} />
-            ))}
+        </motion.section>
+
+        {/* STATUS — fresh-user proof */}
+        <motion.section {...reveal()} id="status" className="border-t border-white/8 py-14">
+          <div className="mb-8 flex flex-col gap-3">
+            <p className="font-mono text-xs uppercase tracking-wide text-signal">Status</p>
+            <h2 className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-4xl">
+              Proven with fresh users, on the experimental tier.
+            </h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {statusRows.map((row) => {
+              const Icon = row.icon;
+              return (
+                <div
+                  key={row.platform}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-2.5 text-lg font-bold text-white">
+                      <Icon className="size-5 text-signal" />
+                      {row.platform}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/15 px-3 py-1 font-mono text-[0.62rem] uppercase text-signal">
+                      <CheckCircle2 className="size-3.5" />
+                      {row.state}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-white/55">{row.detail}</p>
+                </div>
+              );
+            })}
+          </div>
+        </motion.section>
+
+        {/* CTA — docs + console */}
+        <motion.section {...reveal()} className="border-t border-white/8 py-16">
+          <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#12140f] p-8 sm:p-12">
+            <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+              <div>
+                <h2 className="max-w-2xl text-3xl font-bold leading-tight text-white sm:text-4xl">
+                  Ship your first verified patch.
+                </h2>
+                <p className="mt-4 max-w-xl text-base leading-7 text-white/55">
+                  Follow the getting-started flow, or open the operator dashboard to watch
+                  releases, patch health, and rollback on the hosted plane.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg" className="h-12 rounded-xl bg-signal px-6 text-[#0d1f15] hover:bg-signal/90">
+                  <a href="/getting-started">
+                    Get started
+                    <ArrowRight data-icon="inline-end" />
+                  </a>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 rounded-xl border-white/15 bg-white/[0.04] px-6 text-white hover:bg-white/[0.1]"
+                >
+                  <a href="/operator">Open dashboard</a>
+                </Button>
+              </div>
+            </div>
           </div>
         </motion.section>
       </main>
