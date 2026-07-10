@@ -18,20 +18,25 @@ export type RouteEntry = {
   component: ComponentType<any> | null;
 };
 
-// Single source of truth for the 11 build inputs (see vite.config.ts).
-// 10 are served through App (`src/main.tsx`); `/cli-login.html` has its own
-// entry (`src/cli-login/main.tsx`) and is never resolved through App.
+// Single source of truth for the build inputs (see vite.config.ts). Three
+// entrypoints exist: the shared App (`src/main.tsx`) for marketing + the docs
+// home; the docs system (`src/docs/main.tsx`) for the 5 migrated docs content
+// pages, which render through DocsLayout and never touch App; and cli-login
+// (`src/cli-login/main.tsx`). `component: null` marks entries that App does not
+// resolve. The clean URL for each docs page drops `.html` (vercel.json rewrites
+// `/getting-started` -> `/getting-started.html`, etc.).
 export const routes: RouteEntry[] = [
   { path: "/", htmlEntry: "index.html", surface: "marketing", component: MarketingHome },
   { path: "/quickstart.html", htmlEntry: "quickstart.html", surface: "marketing", component: ProductPageRoute },
-  { path: "/cli.html", htmlEntry: "cli.html", surface: "marketing", component: ProductPageRoute },
   { path: "/control-plane.html", htmlEntry: "control-plane.html", surface: "marketing", component: ProductPageRoute },
   { path: "/compatibility.html", htmlEntry: "compatibility.html", surface: "marketing", component: ProductPageRoute },
   { path: "/operator.html", htmlEntry: "operator.html", surface: "console", component: OperatorConsolePage },
-  { path: "/getting-started.html", htmlEntry: "getting-started.html", surface: "docs", component: ProductPageRoute },
-  { path: "/android-quickstart.html", htmlEntry: "android-quickstart.html", surface: "docs", component: ProductPageRoute },
-  { path: "/ios-quickstart.html", htmlEntry: "ios-quickstart.html", surface: "docs", component: ProductPageRoute },
-  { path: "/troubleshooting.html", htmlEntry: "troubleshooting.html", surface: "docs", component: ProductPageRoute },
+  // Docs content pages: own entry (src/docs/main.tsx) -> DocsLayout.
+  { path: "/getting-started.html", htmlEntry: "getting-started.html", surface: "docs", component: null },
+  { path: "/cli.html", htmlEntry: "cli.html", surface: "docs", component: null },
+  { path: "/android-quickstart.html", htmlEntry: "android-quickstart.html", surface: "docs", component: null },
+  { path: "/ios-quickstart.html", htmlEntry: "ios-quickstart.html", surface: "docs", component: null },
+  { path: "/troubleshooting.html", htmlEntry: "troubleshooting.html", surface: "docs", component: null },
   { path: "/cli-login.html", htmlEntry: "cli-login.html", surface: "console", component: null },
 ];
 
