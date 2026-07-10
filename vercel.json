@@ -2,58 +2,94 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "redirects": [
-    { "source": "/index.html", "destination": "/", "permanent": true },
-    { "source": "/quickstart.html", "destination": "/quickstart", "permanent": true },
-    { "source": "/cli.html", "destination": "/cli", "permanent": true },
-    { "source": "/control-plane.html", "destination": "/control-plane", "permanent": true },
-    { "source": "/compatibility.html", "destination": "/compatibility", "permanent": true },
-    { "source": "/operator.html", "destination": "/operator", "permanent": true },
-    { "source": "/what-is-soroq.html", "destination": "/what-is-soroq", "permanent": true },
-    { "source": "/before-you-begin.html", "destination": "/before-you-begin", "permanent": true },
-    { "source": "/getting-started.html", "destination": "/getting-started", "permanent": true },
-    { "source": "/installation.html", "destination": "/installation", "permanent": true },
-    { "source": "/authentication.html", "destination": "/authentication", "permanent": true },
-    { "source": "/soroq-yaml-reference.html", "destination": "/soroq-yaml-reference", "permanent": true },
-    { "source": "/compatibility-limitations.html", "destination": "/compatibility-limitations", "permanent": true },
-    { "source": "/security-model.html", "destination": "/security-model", "permanent": true },
-    { "source": "/product-status.html", "destination": "/product-status", "permanent": true },
-    { "source": "/android-quickstart.html", "destination": "/android-quickstart", "permanent": true },
-    { "source": "/ios-quickstart.html", "destination": "/ios-quickstart", "permanent": true },
-    { "source": "/troubleshooting.html", "destination": "/troubleshooting", "permanent": true },
     {
-      "source": "/docs",
-      "has": [{ "type": "host", "value": "soroq.dev" }],
-      "destination": "https://docs.soroq.dev/",
+      "source": "/index.html",
+      "destination": "/",
       "permanent": true
     },
     {
-      "source": "/docs/:path*",
-      "has": [{ "type": "host", "value": "soroq.dev" }],
-      "destination": "https://docs.soroq.dev/:path*",
+      "source": "/quickstart.html",
+      "destination": "/quickstart",
       "permanent": true
     },
     {
-      "source": "/quickstart",
-      "has": [{ "type": "host", "value": "docs.soroq.dev" }],
-      "destination": "https://soroq.dev/quickstart",
+      "source": "/cli.html",
+      "destination": "/cli",
       "permanent": true
     },
     {
-      "source": "/control-plane",
-      "has": [{ "type": "host", "value": "docs.soroq.dev" }],
-      "destination": "https://soroq.dev/control-plane",
+      "source": "/control-plane.html",
+      "destination": "/control-plane",
       "permanent": true
     },
     {
-      "source": "/compatibility",
-      "has": [{ "type": "host", "value": "docs.soroq.dev" }],
-      "destination": "https://soroq.dev/compatibility",
+      "source": "/compatibility.html",
+      "destination": "/compatibility",
       "permanent": true
     },
     {
-      "source": "/operator",
-      "has": [{ "type": "host", "value": "docs.soroq.dev" }],
-      "destination": "https://soroq.dev/operator",
+      "source": "/operator.html",
+      "destination": "/operator",
+      "permanent": true
+    },
+    {
+      "source": "/what-is-soroq.html",
+      "destination": "/what-is-soroq",
+      "permanent": true
+    },
+    {
+      "source": "/before-you-begin.html",
+      "destination": "/before-you-begin",
+      "permanent": true
+    },
+    {
+      "source": "/getting-started.html",
+      "destination": "/getting-started",
+      "permanent": true
+    },
+    {
+      "source": "/installation.html",
+      "destination": "/installation",
+      "permanent": true
+    },
+    {
+      "source": "/authentication.html",
+      "destination": "/authentication",
+      "permanent": true
+    },
+    {
+      "source": "/soroq-yaml-reference.html",
+      "destination": "/soroq-yaml-reference",
+      "permanent": true
+    },
+    {
+      "source": "/compatibility-limitations.html",
+      "destination": "/compatibility-limitations",
+      "permanent": true
+    },
+    {
+      "source": "/security-model.html",
+      "destination": "/security-model",
+      "permanent": true
+    },
+    {
+      "source": "/product-status.html",
+      "destination": "/product-status",
+      "permanent": true
+    },
+    {
+      "source": "/android-quickstart.html",
+      "destination": "/android-quickstart",
+      "permanent": true
+    },
+    {
+      "source": "/ios-quickstart.html",
+      "destination": "/ios-quickstart",
+      "permanent": true
+    },
+    {
+      "source": "/troubleshooting.html",
+      "destination": "/troubleshooting",
       "permanent": true
     }
   ],
