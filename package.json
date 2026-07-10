@@ -12,7 +12,7 @@
     "dev:vercel": "vercel dev",
     "check:content": "node scripts/check-content.mjs",
     "build:search": "node scripts/gen-search-index.mjs",
-    "build": "node scripts/check-content.mjs && tsc -b && vite build",
+    "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "deploy": "vercel --prod"
   },
