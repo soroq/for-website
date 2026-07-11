@@ -58,16 +58,21 @@ export type ResolvedRoute =
 // `window.location.pathname === "/"` at the root — the ONLY way to tell the two
 // experiences apart client-side is the hostname.
 export const DOCS_HOST = "docs.soroq.dev";
+export const CONSOLE_HOST = "console.soroq.dev";
 
 export function isDocsHost(hostname?: string): boolean {
   return hostname === DOCS_HOST;
 }
 
+export function isConsoleHost(hostname?: string): boolean {
+  return hostname === CONSOLE_HOST;
+}
+
 // Pathname-first resolution, with a load-bearing hostname branch for the root.
 // Known product/docs paths still resolve by pathname on ANY host, so previews
 // like `<preview>.vercel.app/getting-started` keep working. Only the ambiguous
-// root ("/") is disambiguated by hostname: docs host -> docs home, else
-// marketing home.
+// root ("/") is disambiguated by hostname: docs host -> docs home, console
+// host -> operator console, else marketing home.
 export function resolveRoute(pathname: string, hostname?: string): ResolvedRoute {
   const page = productPages.find(
     (candidate) =>
@@ -79,6 +84,10 @@ export function resolveRoute(pathname: string, hostname?: string): ResolvedRoute
     return page.key === "operator"
       ? { kind: "console" }
       : { kind: "product", page };
+  }
+
+  if (isConsoleHost(hostname)) {
+    return { kind: "console" };
   }
 
   if (isDocsHost(hostname)) {

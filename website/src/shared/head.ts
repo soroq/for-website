@@ -11,6 +11,7 @@ import { normalizePath, type ProductPageKey } from "@/shared/pageTypes";
 // runtime by hostname — so we override its title + description here too.
 const MARKETING_ORIGIN = "https://soroq.dev";
 const DOCS_ORIGIN = "https://docs.soroq.dev";
+const CONSOLE_ORIGIN = "https://console.soroq.dev";
 
 const DOCS_PAGE_KEYS = new Set<ProductPageKey>([
   "getting-started",
@@ -23,6 +24,9 @@ const DOCS_PAGE_KEYS = new Set<ProductPageKey>([
 const DOCS_HOME_TITLE = "Soroq | Docs";
 const DOCS_HOME_DESCRIPTION =
   "Soroq docs: install the CLI, run the Android and iOS hard-OTA quickstarts, and troubleshoot base-to-patch-to-rollback flows.";
+const CONSOLE_TITLE = "Soroq | Console";
+const CONSOLE_DESCRIPTION =
+  "Sign in to the Soroq operator console to inspect releases, patch health, staged rollouts, and rollback state.";
 
 type HeadMeta = { canonical: string; title?: string; description?: string };
 
@@ -35,7 +39,11 @@ export function headForRoute(route: ResolvedRoute): HeadMeta {
         description: DOCS_HOME_DESCRIPTION,
       };
     case "console":
-      return { canonical: `${MARKETING_ORIGIN}/operator` };
+      return {
+        canonical: `${CONSOLE_ORIGIN}/`,
+        title: CONSOLE_TITLE,
+        description: CONSOLE_DESCRIPTION,
+      };
     case "product": {
       const path = normalizePath(route.page.path);
       const origin = DOCS_PAGE_KEYS.has(route.page.key)
