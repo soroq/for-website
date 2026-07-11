@@ -903,8 +903,8 @@ soroq toolchain doctor`,
         anchor: "log-in-check-identity-log-out",
         cwd: "~",
         commands: [
-          `soroq login --hosted-surface ${PRODUCT.hostedLoginUrl} --api ${API}
-soroq whoami --api ${API}
+          `soroq login
+soroq whoami
 soroq logout`,
         ],
         output: "logged in as <your-operator-email>",
