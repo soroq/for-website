@@ -1574,7 +1574,10 @@ export function OperatorConsolePage() {
     };
   }, []);
 
-  if (isOperatorRoute(window.location.pathname)) {
+  if (
+    isOperatorRoute(window.location.pathname) ||
+    window.location.hostname === "console.soroq.dev"
+  ) {
     // Primary UX fix: an unauthenticated operator gets a focused sign-in screen,
     // not the full dashboard chrome rendered behind a disabled control. The
     // dashboard (sidebar/topbar/command-center/tiles) is never constructed until
@@ -2856,4 +2859,3 @@ export function OperatorConsolePage() {
   }
 
 }
-
