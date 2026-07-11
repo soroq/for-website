@@ -1035,6 +1035,68 @@ manifest_trust:
         ],
       },
       {
+        heading: "Writing patchable code",
+        anchor: "writing-patchable-code",
+        intro:
+          "Dart's release build strips (tree-shakes) code so that only what the app actually uses ships on device. An iOS engine patch attaches to a specific function by name, so it can only reach a symbol that is retained AND listed under ios_engine.patchable. A function you never declared patchable has no patch hook, and a function nothing references is stripped out entirely — either way a later patch has nothing to attach to. The rule for beginners: declare every function you intend to patch under ios_engine.patchable, and keep it reachable from your running app. The two examples below differ by exactly one line.",
+        callouts: [
+          {
+            tone: "experimental",
+            body: "iOS engine patching is experimental and runs on a physical device only. The behaviour below is the shipped soroq.yaml flow; the redirect hook is inserted by the toolchain from your ios_engine.patchable list.",
+          },
+        ],
+      },
+      {
+        heading: "Failing example: an undeclared function",
+        anchor: "failing-example-an-undeclared-function",
+        intro:
+          "appTagline is reachable from the UI, so it is not tree-shaken, but it is not listed under ios_engine.patchable. The base release builds and ships fine, yet the function has no patch hook.",
+        cwd: "~/my_app",
+        commands: [
+          `// lib/branding.dart
+String appTagline() => 'Ship it.';   // rendered by the UI, so it survives tree-shaking`,
+          `# soroq.yaml -- appTagline is NOT declared patchable
+ios_engine:
+  enabled: true
+  patchable:
+    - "lib/foo.dart#myFn"`,
+        ],
+        output:
+          "the patch publishes, but the device stays on the base value -- with no hook to attach to, the patch silently no-ops",
+        callouts: [
+          {
+            tone: "warning",
+            title: "No hook means no effect",
+            body: "Publishing succeeds and nothing errors, which is the confusing part: the app just keeps showing the base value. If a patch never takes effect on device, check that its target is listed under ios_engine.patchable.",
+          },
+        ],
+      },
+      {
+        heading: "Valid example: the same function, declared patchable",
+        anchor: "valid-example-the-same-function-declared-patchable",
+        intro:
+          "The only change is one line in soroq.yaml: appTagline is now listed under ios_engine.patchable, so the toolchain gives it a patch hook. The Dart source is identical to the failing example.",
+        cwd: "~/my_app",
+        commands: [
+          `// lib/branding.dart
+String appTagline() => 'Ship it.';   // rendered by the UI, so it survives tree-shaking`,
+          `# soroq.yaml -- appTagline is declared patchable
+ios_engine:
+  enabled: true
+  patchable:
+    - "lib/branding.dart#appTagline"`,
+        ],
+        output:
+          "the patch attaches; on the next cold start the device shows the patched value",
+        callouts: [
+          {
+            tone: "note",
+            title: "Keep patch targets reachable",
+            body: "Declaring a function patchable only helps if it is still reachable from your running app. Dart's release build strips code that nothing references, so a function you plan to patch should be called somewhere on a live code path.",
+          },
+        ],
+      },
+      {
         heading: "Platform support matrix",
         anchor: "platform-support-matrix",
         rows: [
