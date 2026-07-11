@@ -128,12 +128,36 @@ async function readApiJson<T>(response: Response): Promise<T> {
   const payload = text ? JSON.parse(text) : {};
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       extractApiError(payload) || `Request failed with HTTP ${response.status}`,
-    );
+    ) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
 
   return payload as T;
+}
+
+export function errorStatus(error: unknown) {
+  if (error && typeof error === "object" && "status" in error) {
+    const status = (error as { status?: unknown }).status;
+    return typeof status === "number" ? status : null;
+  }
+  return null;
+}
+
+// Platform is a real, populated release field (ios vs android). The App →
+// Platform → Channel → Release → Patch hierarchy is derived entirely from these
+// existing responses — no backend contract change. Empty/legacy platform values
+// default to Android, so an app with only Android releases correctly shows only
+// Android.
+export function normalizePlatform(value: unknown): "iOS" | "Android" {
+  const text = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return text === "ios" ? "iOS" : "Android";
+}
+
+export function releasePlatform(record: JsonRecord | null | undefined) {
+  return normalizePlatform(getRecordValue(record, ["platform"]));
 }
 
 export function loadScript(src: string) {
@@ -329,6 +353,9 @@ export function OperatorConsolePage() {
   const [authUser, setAuthUser] = useState<FirebaseAuthUser | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  // Firebase-authenticated but /api/operator/me returned 403: the account is not
+  // on the operator allowlist. This is a distinct state from logged-out.
+  const [authDenied, setAuthDenied] = useState(false);
   const [appIdFilter, setAppIdFilter] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("app_id") || "";
@@ -340,6 +367,10 @@ export function OperatorConsolePage() {
   const [runtimeIdFilter, setRuntimeIdFilter] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("runtime_id") || "";
+  });
+  const [platformFilter, setPlatformFilter] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("platform") || "";
   });
   const [channelFilter, setChannelFilter] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -412,58 +443,98 @@ export function OperatorConsolePage() {
   const selectedPatchRecord =
     patchRecords.find((patch) => recordId(patch) === patchId.trim()) ?? null;
   const patchIdentityRecord = mergeRecords(patchRecord, selectedPatchRecord);
+  // Patches carry no platform of their own — derive it from the patch's base
+  // release so the rollback scope can never be mistaken for another platform.
+  const patchReleaseId = formatRecordText(
+    patchIdentityRecord,
+    ["release_id", "release"],
+    "",
+  );
+  const patchReleaseRecord = patchReleaseId
+    ? releaseRecords.find((release) => recordId(release) === patchReleaseId) || null
+    : null;
+  const patchPlatform = releasePlatform(patchReleaseRecord);
+  const patchAppId = formatRecordText(patchIdentityRecord, ["app_id", "app"], "");
+  const patchAppRecord = patchAppId
+    ? appRecords.find((app) => recordId(app) === patchAppId) || null
+    : null;
+  const patchReleaseLabel =
+    formatRecordText(patchReleaseRecord, ["version", "version_name"], "") ||
+    (patchReleaseId
+      ? shortRecord(patchReleaseId)
+      : patchIdentityRecord
+        ? "unknown"
+        : "not loaded");
+  const patchChannelLabel = formatRecordText(
+    patchIdentityRecord,
+    ["channel"],
+    patchIdentityRecord ? "unknown" : "not loaded",
+  );
+  const patchAppLabel =
+    formatRecordText(patchAppRecord, ["name", "display_name", "app_name"], "") ||
+    patchAppId ||
+    (patchIdentityRecord ? "unknown" : "not loaded");
   const patchIdentityRows = [
+    {
+      label: "Patch",
+      value: patchId.trim()
+        ? `#${formatRecordText(patchIdentityRecord, ["patch_number", "number"], "?")}`
+        : "select a patch",
+      helper: "rollback target",
+    },
+    {
+      label: "Platform",
+      value: patchIdentityRecord ? patchPlatform : "not loaded",
+      helper: "store target",
+    },
+    {
+      label: "Channel",
+      value: patchChannelLabel,
+      helper: "delivery channel",
+    },
+    {
+      label: "Release",
+      value: patchReleaseLabel,
+      helper: "base release",
+    },
+    {
+      label: "App",
+      value: patchAppLabel,
+      helper: "owning app",
+    },
+  ];
+  // Raw internal identifiers live only in this advanced affordance, never as
+  // primary UI. Alternate keys preserved for response fallback handling.
+  const patchTechnicalRows = [
     {
       label: "Patch ID",
       value:
         patchId.trim() ||
-        formatRecordText(patchIdentityRecord, ["patch_id", "id"], "select a patch"),
-      helper: "rollback target",
+        formatRecordText(patchIdentityRecord, ["patch_id", "id"], "not loaded"),
     },
     {
-      label: "Patch number",
-      value: formatRecordText(
-        patchIdentityRecord,
-        ["patch_number", "number"],
-        patchIdentityRecord ? "unknown" : "not loaded",
-      ),
-      helper: "monotonic release lane",
-    },
-    {
-      label: "Release",
+      label: "Release ID",
       value: formatRecordText(
         patchIdentityRecord,
         ["release_id", "release"],
-        patchIdentityRecord ? "unknown" : "not loaded",
+        "not loaded",
       ),
-      helper: "base artifact link",
     },
     {
-      label: "App",
-      value: formatRecordText(
-        patchIdentityRecord,
-        ["app_id", "app"],
-        patchIdentityRecord ? "unknown" : "not loaded",
-      ),
-      helper: "registered app id",
-    },
-    {
-      label: "Runtime",
+      label: "Runtime ID",
       value: formatRecordText(
         patchIdentityRecord,
         ["runtime_id", "runtime"],
-        patchIdentityRecord ? "unknown" : "not loaded",
+        "not recorded",
       ),
-      helper: "compatibility boundary",
     },
     {
-      label: "Channel",
+      label: "App ID",
       value: formatRecordText(
         patchIdentityRecord,
-        ["channel"],
-        patchIdentityRecord ? "unknown" : "not loaded",
+        ["app_id", "app"],
+        "not loaded",
       ),
-      helper: "delivery lane",
     },
   ];
   const patchMetrics = [
@@ -536,12 +607,35 @@ export function OperatorConsolePage() {
   });
   const visibleAppRows = visibleApps.slice(0, appListLimit);
   const hiddenVisibleAppCount = Math.max(visibleApps.length - visibleAppRows.length, 0);
-  const visibleReleases = scopedAppId
+  const appReleases = scopedAppId
     ? releaseRecords.filter((release) => {
         return recordBelongsToApp(release, scopedAppId);
       })
     : [];
   const selectedReleaseId = releaseIdFilter.trim();
+  // Group the app's releases by platform (client-side, from release.platform).
+  const availablePlatforms = Array.from(
+    new Set(appReleases.map((release) => releasePlatform(release))),
+  ).sort((a, b) => (a === "Android" ? -1 : b === "Android" ? 1 : a.localeCompare(b)));
+  const requestedPlatform = platformFilter.trim();
+  // A deep-linked release adopts its own platform so a shared URL lands in scope.
+  const deepLinkReleaseRecord = selectedReleaseId
+    ? appReleases.find((release) => recordId(release) === selectedReleaseId) || null
+    : null;
+  const selectedPlatform =
+    requestedPlatform &&
+    availablePlatforms.includes(requestedPlatform as "iOS" | "Android")
+      ? (requestedPlatform as "iOS" | "Android")
+      : deepLinkReleaseRecord
+        ? releasePlatform(deepLinkReleaseRecord)
+        : availablePlatforms[0] || "";
+  const platformInScope = Boolean(selectedPlatform);
+  const visibleReleases = platformInScope
+    ? appReleases.filter((release) => releasePlatform(release) === selectedPlatform)
+    : [];
+  const platformReleaseIds = new Set(
+    visibleReleases.map((release) => recordId(release)).filter(Boolean),
+  );
   const selectedReleaseRecord =
     selectedReleaseId
       ? visibleReleases.find((release) => recordId(release) === selectedReleaseId) || null
@@ -554,7 +648,7 @@ export function OperatorConsolePage() {
   );
   const selectedReleaseNote = selectedReleaseInScope ? releaseNotes[selectedReleaseId] || "" : "";
   const visiblePatches = patchRecords.filter((patch) => {
-    if (!scopedAppId) {
+    if (!scopedAppId || !platformInScope) {
       return false;
     }
     const appId = formatRecordText(patch, ["app_id"], "");
@@ -564,6 +658,9 @@ export function OperatorConsolePage() {
 
     return (
       appId === scopedAppId &&
+      // Patches carry no platform — keep them only if their base release is in
+      // the selected platform (releaseless patches fall through as a fallback).
+      (!releaseId || platformReleaseIds.has(releaseId)) &&
       (!selectedReleaseId || releaseId === selectedReleaseId) &&
       (!expectedChannel || !channel || channel === expectedChannel)
     );
@@ -642,14 +739,14 @@ export function OperatorConsolePage() {
     : "none";
   const releaseArtifactRows: Array<{
     name: string;
-    platform: string;
+    platform: "iOS" | "Android";
     size: string;
     hash: string;
   }> = selectedReleaseRecord
     ? [
         {
-          name: "store base",
-          platform: "Android",
+          name: "base build",
+          platform: releasePlatform(selectedReleaseRecord),
           size: formatBytesLabel(
             getRecordValue(selectedReleaseRecord, [
               "uploaded_artifact_bytes",
@@ -664,7 +761,7 @@ export function OperatorConsolePage() {
         latestPatchRecord
           ? {
               name: `latest patch ${latestPatchLabel}`,
-              platform: "Android",
+              platform: releasePlatform(selectedReleaseRecord),
               size: formatBytesLabel(
                 getRecordValue(latestPatchRecord, [
                   "bundle_bytes",
@@ -677,7 +774,7 @@ export function OperatorConsolePage() {
             }
           : null,
       ].filter(
-        (row): row is { name: string; platform: string; size: string; hash: string } =>
+        (row): row is { name: string; platform: "iOS" | "Android"; size: string; hash: string } =>
           Boolean(row),
       )
     : [];
@@ -768,7 +865,7 @@ export function OperatorConsolePage() {
     !authToken
       ? "auth required"
       : operatorState.status === "error" || healthState.status === "error"
-        ? "control-plane attention"
+        ? "service attention"
         : inventoryError
           ? "inventory attention"
           : patchHealthState.status === "ready"
@@ -836,14 +933,19 @@ export function OperatorConsolePage() {
       ? { label: "App", value: selectedAppName }
       : { label: inventoryScopeLabel, value: `${appRecords.length} apps visible` },
     {
+      label: "Platform",
+      value: selectedAppInScope
+        ? selectedPlatform || (availablePlatforms.length ? "choose platform" : "no releases")
+        : "select app first",
+    },
+    {
       label: "Release",
       value: selectedReleaseInScope
-        ? shortRecord(selectedReleaseId)
+        ? selectedReleaseLabel
         : selectedReleaseMissing
           ? "not visible"
           : "select app first",
     },
-    { label: "Runtime", value: shortRecord(selectedRuntimeId) || "any runtime" },
     { label: "Latest patch", value: selectedAppInScope ? latestPatchLabel : "after app select" },
   ];
   const isLocalOperatorPreview =
@@ -932,7 +1034,7 @@ export function OperatorConsolePage() {
   ) {
     const token = tokenOverride || (authUser ? await authUser.getIdToken() : authToken);
     if (!token) {
-      throw new Error("Sign in as an operator before calling the control plane.");
+      throw new Error("Sign in as an operator first.");
     }
     if (!tokenOverride && token !== authToken) {
       setAuthToken(token);
@@ -1006,6 +1108,7 @@ export function OperatorConsolePage() {
       runtimeId: string;
       channel: string;
       patch: string;
+      platform: string;
     }> = {},
   ) {
     const nextAppId = filters.appId ?? appIdFilter;
@@ -1013,6 +1116,9 @@ export function OperatorConsolePage() {
     const nextRuntimeId = filters.runtimeId ?? runtimeIdFilter;
     const nextChannel = filters.channel ?? channelFilter;
     const nextPatchId = filters.patch ?? patchId;
+    // Platform is a client-side hierarchy level only — it is synced to the URL
+    // but never sent to any API request (the API contract is unchanged).
+    const nextPlatform = filters.platform ?? platformFilter;
 
     // Cancel any inventory load still in flight so a stale response can never
     // overwrite the newest scope selection.
@@ -1102,6 +1208,7 @@ export function OperatorConsolePage() {
     const params = new URLSearchParams(window.location.search);
     for (const [key, value] of Object.entries({
       app_id: nextAppId,
+      platform: nextPlatform,
       release_id: nextReleaseId,
       runtime_id: nextRuntimeId,
       channel: nextChannel,
@@ -1130,6 +1237,7 @@ export function OperatorConsolePage() {
 
   function goHome() {
     setAppIdFilter("");
+    setPlatformFilter("");
     setReleaseIdFilter("");
     setRuntimeIdFilter("");
     setChannelFilter("stable");
@@ -1141,6 +1249,7 @@ export function OperatorConsolePage() {
     setReleaseTab("overview");
     void loadInventory(undefined, {
       appId: "",
+      platform: "",
       releaseId: "",
       runtimeId: "",
       channel: "stable",
@@ -1150,6 +1259,8 @@ export function OperatorConsolePage() {
 
   function selectApp(appId: string) {
     setAppIdFilter(appId);
+    // Selecting an app clears Platform + Channel + Release + Patch.
+    setPlatformFilter("");
     setReleaseIdFilter("");
     setRuntimeIdFilter("");
     setChannelFilter("stable");
@@ -1161,6 +1272,29 @@ export function OperatorConsolePage() {
     setReleaseTab("overview");
     void loadInventory(undefined, {
       appId,
+      platform: "",
+      releaseId: "",
+      runtimeId: "",
+      channel: "stable",
+      patch: "",
+    });
+  }
+
+  function selectPlatform(nextPlatform: string) {
+    setPlatformFilter(nextPlatform);
+    // Selecting a platform clears Channel + Release + Patch.
+    setReleaseIdFilter("");
+    setRuntimeIdFilter("");
+    setChannelFilter("stable");
+    setPatchId("");
+    setRollbackConfirm("");
+    setPatchHealthState(idleState);
+    setRollbackState(idleState);
+    setOperatorTab("releases");
+    setReleaseTab("overview");
+    void loadInventory(undefined, {
+      appId: scopedAppId,
+      platform: nextPlatform,
       releaseId: "",
       runtimeId: "",
       channel: "stable",
@@ -1186,6 +1320,7 @@ export function OperatorConsolePage() {
   function applyScopeFilters() {
     void loadInventory(undefined, {
       appId: scopedAppId,
+      platform: selectedPlatform,
       releaseId: releaseIdFilter,
       runtimeId: runtimeIdFilter,
       channel: channelFilter,
@@ -1194,6 +1329,7 @@ export function OperatorConsolePage() {
   }
 
   function clearScopeFilters() {
+    // Keep app + platform; clear Channel + Release + Patch below them.
     setReleaseIdFilter("");
     setRuntimeIdFilter("");
     setChannelFilter("stable");
@@ -1204,6 +1340,7 @@ export function OperatorConsolePage() {
     setOperatorTab("overview");
     void loadInventory(undefined, {
       appId: scopedAppId,
+      platform: selectedPlatform,
       releaseId: "",
       runtimeId: "",
       channel: "stable",
@@ -1389,6 +1526,7 @@ export function OperatorConsolePage() {
       await window.firebase?.auth().signOut();
       setAuthToken(null);
       setAuthUser(null);
+      setAuthDenied(false);
       setOperatorState(idleState);
       setHealthState(idleState);
       setAppsState(idleState);
@@ -1399,6 +1537,7 @@ export function OperatorConsolePage() {
       setProductState(idleState);
       setRollbackConfirm("");
       setAppIdFilter("");
+      setPlatformFilter("");
       setReleaseIdFilter("");
       setRuntimeIdFilter("");
       setChannelFilter("stable");
@@ -1484,6 +1623,7 @@ export function OperatorConsolePage() {
 
             setAuthUser(user);
             setAuthError(null);
+            setAuthDenied(false);
 
             if (!user) {
               setAuthToken(null);
@@ -1497,6 +1637,7 @@ export function OperatorConsolePage() {
               setProductState(idleState);
               setRollbackConfirm("");
               setAppIdFilter("");
+              setPlatformFilter("");
               setReleaseIdFilter("");
               setRuntimeIdFilter("");
               setChannelFilter("stable");
@@ -1539,6 +1680,10 @@ export function OperatorConsolePage() {
               }
 
               setAuthToken(null);
+              // HTTP 403 from /api/operator/me means the account authenticated
+              // with Firebase but is not on the operator allowlist — a distinct,
+              // designed state (not logged-out, not a generic error).
+              setAuthDenied(errorStatus(error) === 403);
               setOperatorState({
                 status: "error",
                 data: null,
@@ -1578,6 +1723,65 @@ export function OperatorConsolePage() {
     isOperatorRoute(window.location.pathname) ||
     window.location.hostname === "console.soroq.dev"
   ) {
+    // Firebase-authenticated but not on the operator allowlist (/me → 403): a
+    // distinct, designed state. We never render the dashboard behind a broken
+    // signed-out flag — the operator gets a clear "not authorized" screen with a
+    // way to switch accounts.
+    if (authUser && authDenied) {
+      return (
+        <main className="operator-backdrop grid min-h-screen place-items-center overflow-x-hidden px-4 py-10 text-[#111111]">
+          <section className="operator-panel w-full max-w-md p-6 sm:p-8">
+            <a
+              href="/"
+              className="focus-ring inline-flex items-center gap-3"
+              aria-label="Back to soroq.dev home"
+            >
+              <SoroqMark className="size-9" textClassName="text-sm" />
+              <span>
+                <span className="block text-sm font-semibold tracking-tight">Soroq</span>
+                <span className="block text-xs text-[#7a7a80]">Operator console</span>
+              </span>
+            </a>
+
+            <span className="mt-6 grid size-11 place-items-center border border-black bg-black text-white">
+              <LockKeyhole className="size-5" aria-hidden="true" />
+            </span>
+            <h1 className="mt-4 text-xl font-semibold tracking-[-0.02em]">
+              Your account isn&rsquo;t authorized for this console
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-[#6d6d72]">
+              You signed in as{" "}
+              <span className="font-medium text-black">
+                {authUser.email || "this account"}
+              </span>
+              , but it is not on the operator allowlist. Ask an existing operator
+              to grant access, or switch to an authorized account.
+            </p>
+
+            <Button
+              type="button"
+              className="focus-ring mt-6 h-10 w-full bg-black px-5 text-white hover:bg-[#2b2b2d]"
+              onClick={() => void signOut()}
+            >
+              <LogIn className="size-4" aria-hidden="true" />
+              Sign in with a different account
+            </Button>
+
+            <p className="mt-6 border-t border-black/10 pt-4 text-sm text-[#6d6d72]">
+              Need help? See the{" "}
+              <a
+                href="https://docs.soroq.dev/cli"
+                className="focus-ring font-medium text-black underline underline-offset-4 hover:text-[#2b2b2d]"
+              >
+                operator access docs
+              </a>
+              .
+            </p>
+          </section>
+        </main>
+      );
+    }
+
     // Primary UX fix: an unauthenticated operator gets a focused sign-in screen,
     // not the full dashboard chrome rendered behind a disabled control. The
     // dashboard (sidebar/topbar/command-center/tiles) is never constructed until
@@ -1967,15 +2171,66 @@ export function OperatorConsolePage() {
                       <span className="max-w-[42ch] truncate font-medium text-black">
                         {selectedAppName}
                       </span>
+                      {selectedPlatform ? (
+                        <>
+                          <ChevronRight className="size-3.5" />
+                          <span className="font-medium text-[#4d4d52]">
+                            {selectedPlatform}
+                          </span>
+                        </>
+                      ) : null}
                       {selectedReleaseInScope ? (
                         <>
                           <ChevronRight className="size-3.5" />
-                          <span className="font-mono text-[#4d4d52]">
+                          <span className="font-medium text-[#4d4d52]">
                             {selectedReleaseLabel}
                           </span>
                         </>
                       ) : null}
                     </div>
+
+                    {availablePlatforms.length ? (
+                      <div className="mb-4">
+                        <p
+                          className="mb-1.5 text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]"
+                          id="operator-platform-label"
+                        >
+                          Platform
+                        </p>
+                        <div
+                          className="flex flex-wrap gap-2"
+                          role="group"
+                          aria-labelledby="operator-platform-label"
+                        >
+                          {availablePlatforms.map((platform) => {
+                            const active = platform === selectedPlatform;
+                            const platformReleaseCount = appReleases.filter(
+                              (release) => releasePlatform(release) === platform,
+                            ).length;
+                            return (
+                              <button
+                                key={platform}
+                                type="button"
+                                aria-pressed={active}
+                                className={`focus-ring inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-medium transition ${
+                                  active
+                                    ? "border-black bg-black text-white"
+                                    : "border-black/15 bg-white text-black hover:bg-[#f4f4f5]"
+                                }`}
+                                onClick={() => selectPlatform(platform)}
+                              >
+                                {platform}
+                                <span
+                                  className={`text-xs ${active ? "text-white/70" : "text-[#8d8d93]"}`}
+                                >
+                                  {platformReleaseCount}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
                       <div className="flex min-w-0 gap-3">
 	                        <span className="grid size-11 shrink-0 place-items-center border border-black bg-black text-white">
@@ -1994,15 +2249,14 @@ export function OperatorConsolePage() {
 		                          <p className="mt-2 flex flex-wrap gap-2 text-sm text-[#6d6d72]">
 	                            <span>{operatorEmail}</span>
 	                            <span>·</span>
-	                            <span>Android</span>
+	                            <span>
+	                              {selectedPlatform ||
+	                                (availablePlatforms.length
+	                                  ? availablePlatforms.join(" & ")
+	                                  : "no releases yet")}
+	                            </span>
 	                            <span>·</span>
 	                            <span>{selectedAppPackage}</span>
-	                            <span>·</span>
-	                            <span>
-	                              {selectedRuntimeId
-	                                ? `Runtime ${shortRecord(selectedRuntimeId)}`
-	                                : "Runtime pending"}
-	                            </span>
 	                          </p>
 	                        </div>
 	                      </div>
@@ -2030,7 +2284,7 @@ export function OperatorConsolePage() {
 
                     {!selectedReleaseInScope ? (
                     <form
-                      className="operator-table-shell mt-4 grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_150px_auto_auto]"
+                      className="operator-table-shell mt-4 grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_150px_auto_auto]"
                       onSubmit={(event) => {
                         event.preventDefault();
                         applyScopeFilters();
@@ -2038,24 +2292,14 @@ export function OperatorConsolePage() {
                     >
                       <label className="grid min-w-0 gap-1.5">
 	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
-                          Scope controls
+                          Release
                         </span>
                         <input
                           list="operator-release-options"
                           value={releaseIdFilter}
                           onChange={(event) => setReleaseIdFilter(event.target.value)}
-                          placeholder="release ID"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
-                        />
-                      </label>
-                      <label className="grid min-w-0 gap-1.5">
-	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
-                          Runtime
-                        </span>
-                        <input
-                          value={runtimeIdFilter}
-                          onChange={(event) => setRuntimeIdFilter(event.target.value)}
-                          placeholder="runtime ID"
+                          placeholder="pick a release"
+                          aria-label="Filter by release"
 	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
                         />
                       </label>
@@ -2067,7 +2311,8 @@ export function OperatorConsolePage() {
                           value={channelFilter}
                           onChange={(event) => setChannelFilter(event.target.value)}
                           placeholder="stable"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
+                          aria-label="Filter by channel"
+	                          className="focus-ring h-9 border border-black/10 bg-white px-3 text-sm text-black outline-none placeholder:text-[#9a9aa1]"
                         />
                       </label>
                       <Button
@@ -2130,10 +2375,10 @@ export function OperatorConsolePage() {
                               Release {selectedReleaseLabel}
                             </h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6d6d72]">
-                              {selectedAppName} · {formatRecordText(
+                              {selectedAppName} · {releasePlatform(selectedReleaseRecord)} · {formatRecordText(
                                 selectedReleaseRecord,
                                 ["flutter_version", "flutter", "runtime_version"],
-                                "runtime version not recorded",
+                                "version not recorded",
                               )} · created {recordDateLabel(selectedReleaseRecord)}
                             </p>
                           </div>
@@ -2180,15 +2425,22 @@ export function OperatorConsolePage() {
                         {releaseTab === "overview" ? (
                           <div className="grid gap-4">
                             <div className="grid gap-3 md:grid-cols-4">
-                              <ConsoleMiniStat label="Release" value={selectedReleaseLabel} />
+                              <ConsoleMiniStat label="Platform" value={releasePlatform(selectedReleaseRecord)} />
                               <ConsoleMiniStat
                                 label="Patches"
                                 value={String(visiblePatches.length)}
                               />
-                              <ConsoleMiniStat label="Latest" value={latestPatchLabel} />
                               <ConsoleMiniStat
-                                label="Channel"
-                                value={channelFilter.trim() || "stable"}
+                                label="Rolled back"
+                                value={String(rolledBackVisiblePatches.length)}
+                              />
+                              <ConsoleMiniStat
+                                label="Signature / hash"
+                                value={
+                                  shortHash(selectedReleaseRecord) === "not recorded"
+                                    ? "not recorded"
+                                    : "recorded"
+                                }
                               />
                             </div>
 
@@ -2393,17 +2645,36 @@ export function OperatorConsolePage() {
                             <div className="grid gap-3 md:grid-cols-3">
                               <ConsoleMiniStat
                                 label="App"
-                                value={scopedAppId || "not selected"}
+                                value={selectedAppName}
                               />
                               <ConsoleMiniStat
-                                label="Release ID"
-                                value={selectedReleaseId || "not selected"}
+                                label="Platform"
+                                value={releasePlatform(selectedReleaseRecord)}
                               />
                               <ConsoleMiniStat
-                                label="Runtime"
-                                value={shortRecord(selectedRuntimeId) || "pending"}
+                                label="Release"
+                                value={selectedReleaseLabel}
                               />
                             </div>
+                            <details className="operator-panel-soft p-4">
+                              <summary className="focus-ring cursor-pointer text-sm font-medium text-black">
+                                Technical identifiers (advanced)
+                              </summary>
+                              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                <ConsoleMiniStat
+                                  label="App ID"
+                                  value={scopedAppId || "not selected"}
+                                />
+                                <ConsoleMiniStat
+                                  label="Release ID"
+                                  value={selectedReleaseId || "not selected"}
+                                />
+                                <ConsoleMiniStat
+                                  label="Runtime ID"
+                                  value={selectedRuntimeId || "not recorded"}
+                                />
+                              </div>
+                            </details>
                             <StateNotice
                               tone="warning"
                               message="Destructive release deletion is not exposed from this console until the backend has a guarded delete API."
@@ -2442,7 +2713,8 @@ export function OperatorConsolePage() {
                               Releases
                             </h2>
 	                            <p className="mt-1 text-sm text-[#6d6d72]">
-                              Store bases available for this app.
+                              Base builds available on{" "}
+                              {selectedPlatform || "this platform"}.
                             </p>
                           </div>
                           <Button
@@ -2459,7 +2731,7 @@ export function OperatorConsolePage() {
                         <div className="operator-table-shell overflow-x-auto">
 		                          <div className="grid min-w-[760px] grid-cols-[minmax(220px,1fr)_160px_140px_120px] gap-3 border-b border-black/10 bg-[#f7f7f8] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
 	                            <span>Release</span>
-	                            <span>Runtime</span>
+	                            <span>Platform</span>
                               <span>Channel</span>
                               <span>Patches</span>
 	                          </div>
@@ -2490,8 +2762,8 @@ export function OperatorConsolePage() {
 	                                      {id}
 	                                    </p>
 	                                  </div>
-                                    <span className="break-all font-mono text-xs text-[#6d6d72]">
-                                      {formatRecordText(release, ["runtime_id", "runtime"], "runtime pending")}
+                                    <span className="text-sm text-[#6d6d72]">
+                                      {releasePlatform(release)}
                                     </span>
                                     <span className="text-sm text-[#6d6d72]">
                                       {formatRecordText(release, ["channel", "track"], channelFilter.trim() || "stable")}
@@ -2689,6 +2961,20 @@ export function OperatorConsolePage() {
                               />
                             ))}
                           </div>
+                          <details className="mt-4">
+                            <summary className="focus-ring cursor-pointer text-sm font-medium text-black">
+                              Technical identifiers (advanced)
+                            </summary>
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                              {patchTechnicalRows.map((row) => (
+                                <ConsoleMiniStat
+                                  key={row.label}
+                                  label={row.label}
+                                  value={row.value}
+                                />
+                              ))}
+                            </div>
+                          </details>
                         </div>
 
                         <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
@@ -2712,10 +2998,17 @@ export function OperatorConsolePage() {
                               </div>
                             ) : null}
                           </div>
-                          <JsonPreview
-                            data={patchRecord}
-                            empty="Patch health JSON will appear here after a successful lookup."
-                          />
+                          <details className="min-w-0">
+                            <summary className="focus-ring cursor-pointer text-sm font-medium text-black">
+                              Technical receipt (advanced)
+                            </summary>
+                            <div className="mt-3">
+                              <JsonPreview
+                                data={patchRecord}
+                                empty="Receipt details appear here after a successful lookup."
+                              />
+                            </div>
+                          </details>
                         </div>
                       </div>
                     ) : null}
@@ -2782,16 +3075,23 @@ export function OperatorConsolePage() {
                         {rollbackState.error ? (
                           <StateNotice tone="error" message={rollbackState.error} />
                         ) : null}
-                        {rollbackRecord ? (
-                          <JsonPreview
-                            data={rollbackRecord}
-                            empty="Rollback response will appear here."
-                          />
-                        ) : null}
-                        <JsonPreview
-                          data={healthRecord}
-                          empty="Control-plane health JSON appears after auth."
-                        />
+                        <details>
+                          <summary className="focus-ring cursor-pointer text-sm font-medium text-black">
+                            Technical response (advanced)
+                          </summary>
+                          <div className="mt-3 grid gap-3">
+                            {rollbackRecord ? (
+                              <JsonPreview
+                                data={rollbackRecord}
+                                empty="Rollback response will appear here."
+                              />
+                            ) : null}
+                            <JsonPreview
+                              data={healthRecord}
+                              empty="System health details appear after sign-in."
+                            />
+                          </div>
+                        </details>
 
                         {rollbackDialogOpen ? (
                           <div
@@ -2812,13 +3112,30 @@ export function OperatorConsolePage() {
                                 Confirm rollback
                               </h2>
                               <p className="mt-2 text-sm leading-6 text-[#6d6d72]">
-                                This suppresses future patch-check delivery for patch{" "}
+                                This suppresses future delivery of patch{" "}
                                 <span className="break-all font-mono text-black">
                                   {rollbackTarget}
                                 </span>
-                                {selectedAppInScope ? ` in ${selectedAppName}` : ""}. This
-                                action cannot be undone from the console.
+                                . This action cannot be undone from the console.
                               </p>
+                              <dl className="mt-4 grid gap-2 border border-black/10 bg-[#f7f7f8] p-3 text-sm">
+                                {[
+                                  { label: "App", value: selectedAppInScope ? selectedAppName : patchAppLabel },
+                                  { label: "Platform", value: patchPlatform },
+                                  { label: "Channel", value: patchChannelLabel },
+                                  { label: "Release", value: patchReleaseLabel },
+                                ].map((row) => (
+                                  <div
+                                    key={row.label}
+                                    className="flex items-center justify-between gap-3"
+                                  >
+                                    <dt className="text-[#7a7a80]">{row.label}</dt>
+                                    <dd className="min-w-0 truncate text-right font-medium text-black">
+                                      {row.value}
+                                    </dd>
+                                  </div>
+                                ))}
+                              </dl>
                               <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button
                                   type="button"
