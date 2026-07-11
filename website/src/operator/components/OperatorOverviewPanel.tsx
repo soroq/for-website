@@ -76,7 +76,7 @@ export function OperatorOverviewPanel({
                 {consoleHealthLabel}
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6d6d72]">
-                One operator view for the selected app, release, runtime, channel,
+                One operator view for the selected app, release, channel,
                 health, and rollback state.
               </p>
             </div>
@@ -182,9 +182,6 @@ export function OperatorOverviewPanel({
                       <p className="truncate text-sm font-semibold">{lane.label}</p>
                       <p className="mt-1 truncate font-mono text-xs text-[#7a7a80]">
                         {lane.id || "missing release id"}
-                      </p>
-                      <p className="mt-1 text-xs text-[#8d8d93]">
-                        runtime {lane.runtime || "unknown"}
                       </p>
                     </div>
                     <div>

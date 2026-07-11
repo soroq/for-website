@@ -108,7 +108,7 @@ export function OperatorTopBar({
         ) : null}
         <ApiStatusPill
           state={healthState.status}
-          readyLabel="control plane live"
+          readyLabel="System live"
           idleLabel="health unknown"
           className="w-full justify-center sm:w-auto"
         />
