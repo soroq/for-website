@@ -40,7 +40,7 @@ const pages: DocPage[] = [
     group: "Start",
     order: 3,
     summary:
-      "Install the CLI, pick a platform, install just that toolchain, run doctor, then log in only to publish.",
+      "Install the CLI, add the runtime package, run soroq setup for your platform, run doctor, then log in only to publish.",
     status: "experimental",
     metadata: {
       audience: "New Soroq users",
@@ -65,11 +65,11 @@ const pages: DocPage[] = [
         heading: "1. Install the Soroq CLI",
         anchor: "1-install-the-soroq-cli",
         intro:
-          "Run the public installer, add the bin directory to your PATH, and confirm the version. This installs both soroq and soroqctl. No login required.",
+          "Run the public installer, add the bin directory to your PATH, and confirm the version. This installs the Soroq CLI. No login required.",
         cwd: "~",
         commands: [installCommand],
         output: `soroq ${PRODUCT.cliVersion}`,
-        next: "Choose your platform and install its toolchain.",
+        next: "Install the engine for your platform with soroq setup.",
         callouts: [
           {
             tone: "note",
@@ -78,38 +78,36 @@ const pages: DocPage[] = [
         ],
       },
       {
-        heading: "2. Choose a platform and install its toolchain",
-        anchor: "2-choose-a-platform-and-install-its-toolchain",
+        heading: "2. Install the engine for your platform",
+        anchor: "2-install-the-engine-for-your-platform",
         intro:
-          "Pick Android or iOS with the selector above, then pin the frontend and only that platform's toolchain. You do not install both. Finish with doctor. None of these steps require a login.",
+          "Pick Android or iOS with the selector above, then run one signed setup step. soroq setup resolves and verifies the signed catalog and downloads the matching frontend and toolchain for that platform — no long IDs, no login. Run soroq setup --platforms android,ios to install both. Finish with soroq doctor.",
         cwd: "~",
         codeTabs: [
           {
             platform: "android",
             label: "Android",
-            code: `soroq frontend install ${FRONTEND} --api ${API}
-soroq toolchain install ${ANDROID_TC} --api ${API}
-soroq toolchain doctor`,
+            code: `soroq setup android
+soroq doctor`,
           },
           {
             platform: "ios",
             label: "iOS",
-            code: `soroq frontend install ${FRONTEND} --api ${API}
-soroq toolchain install ${IOS_TC} --api ${API}
-soroq toolchain doctor`,
+            code: `soroq setup ios
+soroq doctor`,
           },
         ],
-        output: "toolchain doctor: frontend + toolchain present and consistent",
+        output: "doctor: frontend + toolchain present and consistent",
         next: "Log in — but only when you are ready to publish.",
         callouts: [
           {
             tone: "verified",
-            body: "soroq toolchain doctor reports whether the frontend and the toolchain you installed are present and consistent before you build anything.",
+            body: "soroq doctor reports whether the frontend and platform toolchain are present and consistent before you build anything. Add --fix to auto-apply safe offline fixes (for example scaffolding soroq.yaml or manifest_trust).",
           },
           {
             tone: "note",
             title: "Download size",
-            body: "The frontend archive is about 1.06 GiB (1,140,170,246 bytes, measured from its /archive endpoint). Toolchain archive sizes are not published (their /archive HEAD is not served over the API), so expect an additional download on first install. Have a solid connection and some disk headroom.",
+            body: "soroq setup shows the download size, a free-disk check, and progress as it fetches the signed frontend (about 1.06 GiB, 1,140,170,246 bytes) and the matching toolchain on first install. Have a solid connection and some disk headroom.",
           },
         ],
       },
@@ -117,11 +115,11 @@ soroq toolchain doctor`,
         heading: "3. Log in (only to publish)",
         anchor: "3-log-in-only-to-publish",
         intro:
-          "Authenticate against the hosted surface, then confirm your identity. You only need this immediately before you publish a release or a patch — installs and doctor never ask for it.",
+          "Sign in through the browser, then confirm your identity. You only need this immediately before you publish a release or a patch — installs and doctor never ask for it. After login you never pass --api again.",
         cwd: "~",
         commands: [
-          `soroq login --hosted-surface ${PRODUCT.hostedLoginUrl} --api ${API}`,
-          `soroq whoami --api ${API}`,
+          `soroq login    # opens your browser to sign in`,
+          `soroq whoami`,
         ],
         output: "logged in as <your-operator-email>",
         next: "Follow the Android or iOS quickstart for a full base -> patch -> rollback cycle.",
@@ -158,78 +156,37 @@ soroq toolchain doctor`,
     },
     sections: [
       {
-        heading: "Set up your identifiers",
-        anchor: "set-up-your-identifiers",
-        intro:
-          "Export these once so every command below reads them instead of a bare <id>. Each line says where its value comes from — you pick most of them; Soroq returns status under the ids you provide.",
-        cwd: "~",
-        env: [
-          {
-            name: "SOROQ_API",
-            example: API,
-            origin: "constant",
-            note: "The Soroq control-plane API. Always this value for the hosted service.",
-          },
-          {
-            name: "SOROQ_APP_ID",
-            example: "com.example.my_app",
-            origin: "you-choose",
-            note: "A stable identifier you pick for the app. Reuse it across every release and patch.",
-          },
-          {
-            name: "SOROQ_CHANNEL",
-            example: "stable",
-            origin: "you-choose",
-            note: "The release channel devices subscribe to, e.g. stable or beta.",
-          },
-          {
-            name: "SOROQ_RELEASE_ID",
-            example: "base-1.0.0",
-            origin: "you-choose",
-            note: "A label for the base release this patch targets. Soroq records it under this id.",
-          },
-          {
-            name: "SOROQ_PATCH_ID",
-            example: "patch-001",
-            origin: "you-choose",
-            note: "A label you pick for this patch. Soroq returns its rollout + verification status under this id.",
-          },
-        ],
-        next: "Create the app and register Soroq.",
-      },
-      {
         heading: "1. Create the app and add Soroq",
         anchor: "1-create-the-app-and-add-soroq",
         intro:
-          "Scaffold a stock Flutter app, add the runtime package, and initialize Soroq with the identifiers you exported.",
+          "Scaffold a stock Flutter app, add the runtime package, and run soroq init. init is offline — it writes soroq.yaml at your project root, where you set app_id and the channel devices subscribe to. No --api, no login.",
         cwd: "~",
         commands: [
           `flutter create my_app
 cd my_app
 flutter pub add soroq_flutter   # soroq_flutter ${PRODUCT.packages.soroqFlutter}
-soroq init --app-id "$SOROQ_APP_ID" --channel "$SOROQ_CHANNEL" --api "$SOROQ_API"`,
+soroq init`,
         ],
-        output: "soroq.yaml written; app registered on the channel",
-        next: "Install the frontend and the Android toolchain.",
+        output: "soroq.yaml written",
+        next: "Install the Android engine with soroq setup.",
       },
       {
-        heading: "2. Install the frontend and Android toolchain",
-        anchor: "2-install-the-frontend-and-android-toolchain",
+        heading: "2. Install the Android engine",
+        anchor: "2-install-the-android-engine",
         intro:
-          "Pin the shared frontend and the Android toolchain, then run doctor. These are downloads, not a login — no account is needed yet. Skip this only if doctor already reports both present.",
+          "Run one signed setup step for Android. soroq setup resolves and verifies the signed catalog, then downloads the matching frontend and Android toolchain — no long IDs, no login. Then run soroq doctor.",
         cwd: "~/my_app",
         commands: [
-          `soroq frontend install ${FRONTEND} --api "$SOROQ_API"
-soroq toolchain install ${ANDROID_TC} --api "$SOROQ_API"
-soroq toolchain doctor`,
+          `soroq setup android
+soroq doctor`,
         ],
-        output: "toolchain doctor: frontend + Android toolchain present and consistent",
+        output: "doctor: frontend + Android toolchain present and consistent",
         next: "Cut the base release.",
         callouts: [
           {
             tone: "note",
             title: "Download size",
-            body: "The frontend archive is about 1.06 GiB (1,140,170,246 bytes), installed under ~/.soroq/frontends/ (toolchains under ~/.soroq/toolchains/). Expect an additional toolchain download on first install, so keep some disk headroom. A verified existing install is reused; re-run with --force to reinstall.",
+            body: "soroq setup shows the download size, a free-disk check, and progress as it fetches the signed frontend (about 1.06 GiB, 1,140,170,246 bytes) and the Android toolchain on first install. A verified existing install is reused. Add --fix to soroq doctor to auto-apply safe offline fixes.",
           },
         ],
       },
@@ -237,34 +194,23 @@ soroq toolchain doctor`,
         heading: "3. Cut the base release",
         anchor: "3-cut-the-base-release",
         intro:
-          "Publishing needs a one-time browser login (installs and doctor did not). Then register the stock APK as the base the patch will target — the stock app shows the default counter value (42). Run this from inside my_app.",
+          "Publishing needs a one-time browser login (installs and doctor did not). Then cut the base release the patch will target — the stock app shows the default counter value (42). soroq release reads app_id and the channel from soroq.yaml and records the exact toolchain it used in soroq.lock. Run this from inside my_app.",
         cwd: "~/my_app",
         commands: [
-          `soroq login --api "$SOROQ_API"       # one-time: opens the browser to sign in
-soroq release android \\
-  --toolchain ${ANDROID_TC} \\
-  --artifact-type apk --api "$SOROQ_API" \\
-  --app-id "$SOROQ_APP_ID" --release-id "$SOROQ_RELEASE_ID" \\
-  --version 1.0.0+1 --channel "$SOROQ_CHANNEL"`,
+          `soroq login          # one-time: opens the browser to sign in
+soroq release android`,
         ],
-        output: "logged in; base release accepted for $SOROQ_RELEASE_ID (version 1.0.0+1)",
+        output: "logged in; base release accepted (version 1.0.0+1)",
         next: "Change visible code and publish a patch.",
       },
       {
         heading: "4. Change visible code and patch",
         anchor: "4-change-visible-code-and-patch",
         intro:
-          "Edit a lib/ Dart file so a visible value changes (for example a counter that reads 42 -> 91), then publish a code patch at 100% rollout.",
+          "Edit a lib/ Dart file so a visible value changes (for example a counter that reads 42 -> 91), then publish a code patch. soroq patch builds with the SAME toolchain as the base, read from soroq.lock, and ships at full rollout.",
         cwd: "~/my_app",
-        commands: [
-          `soroq patch android \\
-  --release-id "$SOROQ_RELEASE_ID" --patch-id "$SOROQ_PATCH_ID" \\
-  --toolchain ${ANDROID_TC} \\
-  --artifact-type apk --api "$SOROQ_API" \\
-  --channel "$SOROQ_CHANNEL" --track "$SOROQ_CHANNEL" \\
-  --kind code --rollout 100`,
-        ],
-        output: "patch $SOROQ_PATCH_ID published at 100% rollout",
+        commands: [`soroq patch android`],
+        output: "patch published at 100% rollout",
         next: "Confirm the patch staged and activated on device.",
         callouts: [
           {
@@ -280,7 +226,7 @@ soroq release android \\
         intro:
           "Cold-start the app once to stage the patch, then cold-start again to activate it. The visible value flips from 42 to 91 on the second launch. In code, read getAutoUpdateState() after the check completes (not the immediate return of runAutoUpdateNow()) to confirm the patch is staged then active before you move on.",
         cwd: "~/my_app",
-        output: "auto-update state: patch $SOROQ_PATCH_ID active; app shows value 91",
+        output: "auto-update state: patch active; app shows value 91",
         next: "Roll back to the base.",
         callouts: [
           {
@@ -292,15 +238,15 @@ soroq release android \\
       {
         heading: "6. Roll back",
         anchor: "6-roll-back",
-        intro: "Revert to the base with a server-side rollback and verify it landed.",
+        intro: "Revert to the base with a server-side rollback and confirm it landed on the next cold start.",
         cwd: "~/my_app",
-        commands: [`soroq rollback --patch-id "$SOROQ_PATCH_ID" --api "$SOROQ_API" --verify`],
-        output: "rollback verified for $SOROQ_PATCH_ID",
+        commands: [`soroq rollback android`],
+        output: "rolled back to the previous patch",
         callouts: [
           {
             tone: "rollback",
             title: "Rollback nuance",
-            body: "An already-running process may still show patched code for that launch. The NEXT cold start serves the base. Rollback is a server-side decision; --verify confirms it landed.",
+            body: "An already-running process may still show patched code for that launch. The NEXT cold start serves the base. Rollback is a server-side decision. To target a specific patch instead of the previous one, pass the advanced override soroq rollback android --patch-id <id>.",
           },
         ],
       },
@@ -355,43 +301,20 @@ soroq release android \\
         ],
       },
       {
-        heading: "Set up your identifiers",
-        anchor: "set-up-your-identifiers",
+        heading: "1. Create the app, init Soroq, install the iOS engine",
+        anchor: "1-create-the-app-init-install-ios-engine",
         intro:
-          "Export these once so no command carries a bare <id>. The manifest signing keypair is generated for you — you never export the private seed.",
+          "Scaffold a stock Flutter app, add the runtime package, and run soroq init. init is offline: it writes soroq.yaml (where you set app_id and channel) and scaffolds manifest_trust — so the file you edit in the next step already exists and the base you build in step 3 has a key to sign with. Then run one signed soroq setup ios step to download the matching frontend and iOS toolchain.",
         cwd: "~",
-        env: [
-          {
-            name: "SOROQ_API",
-            example: API,
-            origin: "constant",
-            note: "The Soroq control-plane API. Always this value for the hosted service.",
-          },
-          {
-            name: "SOROQ_APP_ID",
-            example: "com.example.my_app",
-            origin: "you-choose",
-            note: "A stable identifier you pick for the app. Reuse it across releases and patches.",
-          },
-          {
-            name: "SOROQ_CHANNEL",
-            example: "stable",
-            origin: "you-choose",
-            note: "The release channel devices subscribe to, e.g. stable or beta.",
-          },
-          {
-            name: "SOROQ_RELEASE_ID",
-            example: "base-1.0.0",
-            origin: "you-choose",
-            note: "A label for the base engine release this patch targets. Soroq records it under this id.",
-          },
-          {
-            name: "SOROQ_PATCH_ID",
-            example: "patch-001",
-            origin: "you-choose",
-            note: "A label you pick for this engine patch. Soroq returns its status under this id.",
-          },
+        commands: [
+          `flutter create my_app && cd my_app
+flutter pub add soroq_flutter   # soroq_flutter ${PRODUCT.packages.soroqFlutter}
+soroq init
+soroq setup ios
+soroq doctor`,
         ],
+        output: "soroq.yaml written + manifest_trust scaffolded; frontend + iOS toolchain installed",
+        next: "Declare the functions the engine may patch.",
         callouts: [
           {
             tone: "note",
@@ -399,23 +322,6 @@ soroq release android \\
             body: "Soroq scaffolds manifest_trust for you: only the public key is written into your project. The private seed is stored at mode 0600 and gitignored — it is generated, never something you set.",
           },
         ],
-        next: "Create the app and install the frontend + iOS toolchain.",
-      },
-      {
-        heading: "1. Create the app, init Soroq, install frontend + toolchain",
-        anchor: "1-create-the-app-init-install-frontend-toolchain",
-        intro:
-          "Scaffold a stock Flutter app, add the runtime package, and run soroq init. init writes soroq.yaml and scaffolds manifest_trust (public key in the project, private seed at mode 0600, gitignored) — so the file you edit in the next step already exists and the base you build in step 3 has a key to sign with.",
-        cwd: "~",
-        commands: [
-          `flutter create my_app && cd my_app
-flutter pub add soroq_flutter   # soroq_flutter ${PRODUCT.packages.soroqFlutter}
-soroq init --app-id "$SOROQ_APP_ID" --channel "$SOROQ_CHANNEL" --api "$SOROQ_API"
-soroq frontend install ${FRONTEND} --api "$SOROQ_API"
-soroq toolchain install ${IOS_TC} --api "$SOROQ_API"`,
-        ],
-        output: "soroq.yaml written + manifest_trust scaffolded; frontend + iOS toolchain installed",
-        next: "Declare the functions the engine may patch.",
       },
       {
         heading: "2. Declare patchable functions in soroq.yaml",
@@ -435,30 +341,23 @@ soroq toolchain install ${IOS_TC} --api "$SOROQ_API"`,
         heading: "3. Build the signed base release",
         anchor: "3-build-the-signed-base-release",
         intro:
-          "Publishing needs a one-time browser login (installs and doctor did not). Then build and register the signed base engine release.",
+          "Publishing needs a one-time browser login (installs and doctor did not). Then build and register the signed base engine release. soroq release reads app_id and channel from soroq.yaml and records the exact toolchain it used in soroq.lock, so later patches build against the same toolchain.",
         cwd: "~/my_app",
         commands: [
-          `soroq login --api "$SOROQ_API"       # one-time: opens the browser to sign in
-soroq release ios --engine --build \\
-  --toolchain ${IOS_TC} \\
-  --app-id "$SOROQ_APP_ID" --release-id "$SOROQ_RELEASE_ID" \\
-  --channel "$SOROQ_CHANNEL" --api "$SOROQ_API"`,
+          `soroq login          # one-time: opens the browser to sign in
+soroq release ios --engine --build`,
         ],
-        output: "logged in; signed base engine release built for $SOROQ_RELEASE_ID",
+        output: "logged in; signed base engine release built",
         next: "Publish an engine patch.",
       },
       {
         heading: "4. Publish an engine patch",
         anchor: "4-publish-an-engine-patch",
+        intro:
+          "Change a patchable function, then publish an engine patch. soroq patch builds with the same toolchain as the base, read from soroq.lock.",
         cwd: "~/my_app",
-        commands: [
-          `soroq patch ios --engine \\
-  --toolchain ${IOS_TC} \\
-  --app-id "$SOROQ_APP_ID" --release-id "$SOROQ_RELEASE_ID" \\
-  --patch-id "$SOROQ_PATCH_ID" \\
-  --channel "$SOROQ_CHANNEL" --api "$SOROQ_API"`,
-        ],
-        output: "engine patch $SOROQ_PATCH_ID published",
+        commands: [`soroq patch ios --engine`],
+        output: "engine patch published",
         next: "Confirm the patched value on device, then roll back.",
         callouts: [
           {
@@ -477,9 +376,9 @@ soroq release ios --engine --build \\
         anchor: "5-roll-back",
         cwd: "~/my_app",
         commands: [
-          `soroq rollback ios-engine --patch-id "$SOROQ_PATCH_ID" --api "$SOROQ_API" --verify`,
+          `soroq rollback ios-engine --patch-id patch-001 --api ${API} --verify`,
         ],
-        output: "rollback verified for $SOROQ_PATCH_ID",
+        output: "rollback verified",
         callouts: [
           {
             tone: "note",
@@ -536,6 +435,51 @@ soroq release ios --engine --build \\
           {
             tone: "note",
             body: "macOS and Linux are supported and smoke-tested — Linux is natively validated in CI, not under emulation. Windows is pending (see the Windows acceptance checklist). Building from source is supported on all three.",
+          },
+        ],
+      },
+      {
+        heading: "Set up and manage the engine",
+        anchor: "set-up-and-manage-the-engine",
+        intro:
+          "soroq setup is the one-step way to install the frontend and a platform toolchain: it resolves and verifies the signed catalog, shows the download size and a free-disk check, and downloads the matching artifacts — no long IDs, no login. These commands manage that install over its lifetime.",
+        rows: [
+          {
+            term: "soroq setup <platform>",
+            detail:
+              "Resolve, verify, and download the matching frontend and toolchain for android or ios. Use --platforms android,ios to install both at once.",
+          },
+          {
+            term: "soroq doctor",
+            detail:
+              "Report whether the frontend and platform toolchain are present and consistent. Add --fix to auto-apply safe offline fixes (for example scaffolding soroq.yaml or manifest_trust).",
+          },
+          {
+            term: "soroq status",
+            detail: "Show the current install state for the frontend and installed toolchains.",
+          },
+          {
+            term: "soroq cache list",
+            detail: "List the cached frontend and toolchain artifacts on disk.",
+          },
+          {
+            term: "soroq cache clean",
+            detail: "Remove cached artifacts to reclaim disk space.",
+          },
+          {
+            term: "soroq update",
+            detail: "Update the installed frontend and toolchains to the latest matching signed catalog entries.",
+          },
+          {
+            term: "soroq uninstall",
+            detail: "Remove the installed Soroq engine artifacts.",
+          },
+        ],
+        callouts: [
+          {
+            tone: "note",
+            title: "Pin exact versions",
+            body: "To pin an exact frontend or toolchain by full ID, see the advanced manual install on the Installation page. soroq toolchain doctor still reports on a manually pinned install.",
           },
         ],
       },
@@ -620,12 +564,14 @@ soroq version   # -> soroq ${PRODUCT.cliVersion}`,
         anchor: "missing-frontend-or-toolchain",
         rows: [
           {
-            term: "Frontend missing",
-            detail: `soroq frontend install ${FRONTEND} --api ${API}`,
+            term: "Frontend or toolchain missing",
+            detail:
+              "Run soroq setup android (or soroq setup ios) to resolve and download the matching frontend and toolchain, then soroq doctor to confirm they are present and consistent.",
           },
           {
-            term: "Toolchain missing",
-            detail: `soroq toolchain install <toolchain> --api ${API} (Android: ${ANDROID_TC}, iOS: ${IOS_TC})`,
+            term: "doctor reports a fixable issue",
+            detail:
+              "Run soroq doctor --fix to auto-apply safe offline fixes, for example scaffolding soroq.yaml or manifest_trust.",
           },
         ],
       },
@@ -817,7 +763,7 @@ soroq version   # -> soroq ${PRODUCT.cliVersion}`,
     order: 4,
     status: "experimental",
     summary:
-      "Install the CLI, pin the shared frontend, add the platform toolchain you need, or build the CLI from source. Windows is pending.",
+      "Install the CLI, run soroq setup for your platform, or build the CLI from source. A manual long-ID install is available for version pinning. Windows is pending.",
     metadata: {
       cli: PRODUCT.cliVersion,
       frontend: "~1.06 GiB archive",
@@ -828,51 +774,41 @@ soroq version   # -> soroq ${PRODUCT.cliVersion}`,
         heading: "1. Install the CLI",
         anchor: "1-install-the-cli",
         intro:
-          "Run the public installer, add the bin directory to your PATH, and confirm the version. This installs both soroq and soroqctl. No login required.",
+          "Run the public installer, add the bin directory to your PATH, and confirm the version. This installs the Soroq CLI. No login required.",
         cwd: "~",
         commands: [installCommand],
         output: `soroq ${PRODUCT.cliVersion}`,
-        next: "Install the shared frontend.",
+        next: "Install the engine for your platform with soroq setup.",
       },
       {
-        heading: "2. Install the frontend",
-        anchor: "2-install-the-frontend",
+        heading: "2. Install the engine for your platform",
+        anchor: "2-install-the-engine-for-your-platform",
         intro:
-          "Pin the shared Flutter frontend both platforms build against. This is a one-time download of about 1.06 GiB.",
-        cwd: "~",
-        commands: [`soroq frontend install ${FRONTEND} --api ${API}`],
-        output: "frontend installed",
-        next: "Install the toolchain for your platform.",
-        callouts: [
-          {
-            tone: "note",
-            title: "Download size",
-            body: "The frontend archive is about 1.06 GiB (1,140,170,246 bytes, measured from its /archive endpoint). Toolchain archive sizes are not published, so expect an extra download on first toolchain install.",
-          },
-        ],
-      },
-      {
-        heading: "3. Install a platform toolchain",
-        anchor: "3-install-a-platform-toolchain",
-        intro:
-          "Install only the toolchain for the platform you are shipping, then run doctor to confirm the frontend and toolchain are consistent.",
+          "Run one signed setup step for the platform you are shipping. soroq setup resolves and verifies the signed catalog, then downloads the matching frontend (about 1.06 GiB) and that platform's toolchain — no long IDs, no login. Run soroq setup --platforms android,ios to install both. Then run soroq doctor.",
         cwd: "~",
         codeTabs: [
           {
             platform: "android",
             label: "Android",
-            code: `soroq toolchain install ${ANDROID_TC} --api ${API}
-soroq toolchain doctor`,
+            code: `soroq setup android
+soroq doctor`,
           },
           {
             platform: "ios",
             label: "iOS",
-            code: `soroq toolchain install ${IOS_TC} --api ${API}
-soroq toolchain doctor`,
+            code: `soroq setup ios
+soroq doctor`,
           },
         ],
-        output: "toolchain doctor: frontend + toolchain present and consistent",
+        output: "doctor: frontend + toolchain present and consistent",
         next: "Optionally build the CLI from source.",
+        callouts: [
+          {
+            tone: "note",
+            title: "Download size",
+            body: "soroq setup shows the download size, a free-disk check, and progress. The shared frontend archive is about 1.06 GiB (1,140,170,246 bytes); the toolchain is an additional download on first install. Add --fix to soroq doctor to auto-apply safe offline fixes.",
+          },
+        ],
       },
       {
         heading: "Build from source",
@@ -892,6 +828,37 @@ make build        # stamps ./VERSION -> ./soroq + ./soroqctl
             tone: "note",
             title: "Windows is pending",
             body: "install.sh does not offer Windows and install.ps1 stays gated behind an explicit opt-in. Building from source is supported on macOS and Linux; Windows becomes supported only after the acceptance gates pass.",
+          },
+        ],
+      },
+      {
+        heading: "Advanced — manual install (long IDs)",
+        anchor: "advanced-manual-install-long-ids",
+        intro:
+          "Most users should use soroq setup above. If you need to pin an exact frontend and toolchain version — for example to reproduce a specific build — install them by their full IDs against the API. These are the same signed artifacts soroq setup resolves for you. soroq toolchain doctor reports whether the pinned frontend and toolchain are present and consistent.",
+        cwd: "~",
+        codeTabs: [
+          {
+            platform: "android",
+            label: "Android",
+            code: `soroq frontend install ${FRONTEND} --api ${API}
+soroq toolchain install ${ANDROID_TC} --api ${API}
+soroq toolchain doctor`,
+          },
+          {
+            platform: "ios",
+            label: "iOS",
+            code: `soroq frontend install ${FRONTEND} --api ${API}
+soroq toolchain install ${IOS_TC} --api ${API}
+soroq toolchain doctor`,
+          },
+        ],
+        output: "toolchain doctor: frontend + toolchain present and consistent",
+        callouts: [
+          {
+            tone: "note",
+            title: "For version pinning only",
+            body: "The long IDs and the --api flag are only needed for this manual, advanced path. The beginner flow (soroq setup + soroq doctor) never needs them.",
           },
         ],
       },
@@ -1010,6 +977,24 @@ manifest_trust:
             tone: "note",
             title: "manifest_trust is generated",
             body: "You do not set manifest_trust by hand. Soroq scaffolds it: only the public key lands in the project; the private seed stays at mode 0600 and gitignored.",
+          },
+        ],
+      },
+      {
+        heading: "Project files: soroq.lock",
+        anchor: "project-files-soroq-lock",
+        intro:
+          "soroq.lock is a committed project artifact, like a lockfile — not a command you run. soroq release records the exact toolchain a base release was built with into soroq.lock, so soroq patch always builds against the SAME toolchain as its base. Commit it alongside soroq.yaml so patches stay reproducible across machines.",
+        rows: [
+          {
+            term: "soroq.yaml",
+            detail:
+              "Written by soroq init (offline). Holds app_id, channel, the ios_engine block, and the manifest_trust public key. You edit this.",
+          },
+          {
+            term: "soroq.lock",
+            detail:
+              "Written by soroq release. Records the exact toolchain the base used so soroq patch reuses it. Commit it; do not hand-edit it.",
           },
         ],
       },

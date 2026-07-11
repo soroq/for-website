@@ -224,9 +224,9 @@ function DeveloperExperiencePanel({ commands }: { commands: ProductCommandRow[] 
         ))}
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <ProductLink href="/quickstart.html" label="Quickstart" />
-        <ProductLink href="/cli.html" label="CLI guide" />
-        <ProductLink href="/control-plane.html" label="Control plane" />
+        <ProductLink href="/quickstart" label="Quickstart" />
+        <ProductLink href="/cli" label="CLI guide" />
+        <ProductLink href="/control-plane" label="Control plane" />
       </div>
     </section>
   );
