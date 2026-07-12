@@ -180,8 +180,8 @@ export function OperatorOverviewPanel({
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{lane.label}</p>
-                      <p className="mt-1 truncate font-mono text-xs text-[#7a7a80]">
-                        {lane.id || "missing release id"}
+                      <p className="mt-1 truncate text-xs text-[#7a7a80]">
+                        {lane.patches} {lane.patches === 1 ? "patch" : "patches"}
                       </p>
                     </div>
                     <div>
