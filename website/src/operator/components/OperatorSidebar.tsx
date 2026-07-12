@@ -30,7 +30,7 @@ export function OperatorSidebar({
         <SoroqMark className="size-8" textClassName="text-xs" />
         <div>
           <p className="text-sm font-semibold tracking-tight">Soroq</p>
-          <p className="text-xs text-[#7a7a80]">Control plane</p>
+          <p className="text-xs text-[#7a7a80]">Operator console</p>
         </div>
       </a>
 

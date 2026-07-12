@@ -280,7 +280,7 @@ function TrustPanel({
           <div className="mt-4 grid gap-3">
             {[
               "Firebase operator identity verified before console access",
-              "Internal control-plane token stays server-side",
+              "Internal service token stays server-side",
               "Owner-scoped routes protect app/release/patch reads",
               "Rollback requires an explicit patch target",
             ].map((item) => (
