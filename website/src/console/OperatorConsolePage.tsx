@@ -66,6 +66,17 @@ import type {
   OperatorProfile,
   OperatorTab,
 } from "@/operator/types";
+import {
+  classifyAuthError,
+  deriveAvailablePlatforms,
+  deriveChannels,
+  filterReleasesByPlatformAndChannel,
+  releasePlatform,
+  resolveDeepLinkScope,
+  scopeAfterSelect,
+  validateRollbackScope,
+  type ScopeState,
+} from "@/console/consoleModel";
 
 declare global {
   interface Window {
@@ -146,20 +157,13 @@ export function errorStatus(error: unknown) {
   return null;
 }
 
-// Platform is a real, populated release field (ios vs android). The App →
-// Platform → Channel → Release → Patch hierarchy is derived entirely from these
-// existing responses — no backend contract change. Empty/legacy platform values
-// default to Android, so an app with only Android releases correctly shows only
-// Android.
-export function normalizePlatform(value: unknown): "iOS" | "Android" {
-  const text = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return text === "ios" ? "iOS" : "Android";
-}
-
-export function releasePlatform(record: JsonRecord | null | undefined) {
-  return normalizePlatform(getRecordValue(record, ["platform"]));
-}
-
+// Platform is a real, populated release field (literal "android"/"ios"). The App
+// → Platform → Channel → Release → Patch hierarchy is derived entirely from
+// these existing responses — no backend contract change. Classification,
+// channel derivation, deep-link resolution, and rollback-scope validation all
+// live in ./consoleModel (pure + unit-tested); this component only adapts them.
+// releasePlatform() now returns a discriminated PlatformClass so unknown/
+// unsupported platforms are never silently treated as Android.
 export function loadScript(src: string) {
   const existing = scriptLoads.get(src);
   if (existing) {
@@ -374,7 +378,11 @@ export function OperatorConsolePage() {
   });
   const [channelFilter, setChannelFilter] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get("channel") || "stable";
+    // No hardcoded default: an absent channel param lets the resolver adopt a
+    // deep-linked release's own channel, and otherwise falls back to the first
+    // derived channel. A phantom "stable" default would spuriously conflict with
+    // a release-only link that points at a non-stable release.
+    return params.get("channel") || "";
   });
   const [patchId, setPatchId] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -484,7 +492,7 @@ export function OperatorConsolePage() {
     },
     {
       label: "Platform",
-      value: patchIdentityRecord ? patchPlatform : "not loaded",
+      value: patchIdentityRecord ? patchPlatform.label : "not loaded",
       helper: "store target",
     },
     {
@@ -613,34 +621,53 @@ export function OperatorConsolePage() {
       })
     : [];
   const selectedReleaseId = releaseIdFilter.trim();
-  // Group the app's releases by platform (client-side, from release.platform).
-  const availablePlatforms = Array.from(
-    new Set(appReleases.map((release) => releasePlatform(release))),
-  ).sort((a, b) => (a === "Android" ? -1 : b === "Android" ? 1 : a.localeCompare(b)));
-  const requestedPlatform = platformFilter.trim();
-  // A deep-linked release adopts its own platform so a shared URL lands in scope.
-  const deepLinkReleaseRecord = selectedReleaseId
-    ? appReleases.find((release) => recordId(release) === selectedReleaseId) || null
-    : null;
+  // Resolve the App → Platform → Channel → Release hierarchy through the pure
+  // model. A conflicting deep link (a release_id whose platform/channel disagrees
+  // with the platform/channel params) fails visibly and does NOT silently switch
+  // scope — the explicit params win and the release is not adopted.
+  const deepLinkScope = resolveDeepLinkScope({
+    releases: appReleases,
+    platformParam: platformFilter,
+    channelParam: channelFilter,
+    releaseParam: selectedReleaseId,
+  });
+  const deepLinkConflicts = deepLinkScope.conflicts;
+  // Distinct platforms present in this app's releases (Android first, unknown
+  // last). Unknown/unsupported platforms are surfaced, never folded into Android.
+  const availablePlatforms = deriveAvailablePlatforms(appReleases);
   const selectedPlatform =
-    requestedPlatform &&
-    availablePlatforms.includes(requestedPlatform as "iOS" | "Android")
-      ? (requestedPlatform as "iOS" | "Android")
-      : deepLinkReleaseRecord
-        ? releasePlatform(deepLinkReleaseRecord)
-        : availablePlatforms[0] || "";
+    availablePlatforms.find(
+      (platform) => platform.key === deepLinkScope.platformKey,
+    ) ??
+    availablePlatforms[0] ??
+    null;
+  const selectedPlatformKey = selectedPlatform?.key ?? "";
   const platformInScope = Boolean(selectedPlatform);
+  // Channel is a real ordered level derived from the releases of the selected
+  // app + platform.
+  const availableChannels = deriveChannels(appReleases, selectedPlatformKey);
+  // Drive the channel through the resolver (like the platform) so a deep-linked
+  // release restores its OWN channel; otherwise fall back to the first derived
+  // channel.
+  const selectedChannel = availableChannels.includes(deepLinkScope.channel)
+    ? deepLinkScope.channel
+    : availableChannels[0] || deepLinkScope.channel || "stable";
+  const visibleReleasesForChannel = (channel: string) =>
+    filterReleasesByPlatformAndChannel(appReleases, selectedPlatformKey, channel);
   const visibleReleases = platformInScope
-    ? appReleases.filter((release) => releasePlatform(release) === selectedPlatform)
+    ? visibleReleasesForChannel(selectedChannel)
     : [];
   const platformReleaseIds = new Set(
     visibleReleases.map((release) => recordId(release)).filter(Boolean),
   );
+  // On a conflicting deep link we do not select the release — the operator sees a
+  // conflict notice and an unchanged scope instead of a silent switch.
   const selectedReleaseRecord =
-    selectedReleaseId
-      ? visibleReleases.find((release) => recordId(release) === selectedReleaseId) || null
+    !deepLinkConflicts.length && selectedReleaseId
+      ? visibleReleases.find((release) => recordId(release) === selectedReleaseId) ||
+        null
       : null;
-  const selectedReleaseInScope = Boolean(selectedReleaseId && selectedReleaseRecord);
+  const selectedReleaseInScope = Boolean(selectedReleaseRecord);
   const selectedReleaseLabel = formatRecordText(
     selectedReleaseRecord,
     ["version", "version_name", "id", "release_id"],
@@ -654,15 +681,14 @@ export function OperatorConsolePage() {
     const appId = formatRecordText(patch, ["app_id"], "");
     const releaseId = formatRecordText(patch, ["release_id", "release"], "");
     const channel = formatRecordText(patch, ["channel"], "");
-    const expectedChannel = channelFilter.trim();
 
     return (
       appId === scopedAppId &&
       // Patches carry no platform — keep them only if their base release is in
-      // the selected platform (releaseless patches fall through as a fallback).
+      // the selected platform + channel (releaseless patches fall through).
       (!releaseId || platformReleaseIds.has(releaseId)) &&
-      (!selectedReleaseId || releaseId === selectedReleaseId) &&
-      (!expectedChannel || !channel || channel === expectedChannel)
+      (!selectedReleaseInScope || releaseId === selectedReleaseId) &&
+      (!selectedChannel || !channel || channel === selectedChannel)
     );
   });
   const visiblePatchesNewest = [...visiblePatches].sort(compareNewestPatch);
@@ -681,33 +707,25 @@ export function OperatorConsolePage() {
   const selectedPatchInScope = selectedPatchId
     ? visiblePatches.some((patch) => recordId(patch) === selectedPatchId)
     : false;
-  const patchIdentityAppId = formatRecordText(patchIdentityRecord, ["app_id", "app"], "");
-  const patchIdentityReleaseId = formatRecordText(
-    patchIdentityRecord,
-    ["release_id", "release"],
-    "",
-  );
-  const patchIdentityChannel = formatRecordText(patchIdentityRecord, ["channel"], "");
-  const patchScopeMismatches = [
-    scopedAppId && patchIdentityAppId && patchIdentityAppId !== scopedAppId
-      ? `patch app ${patchIdentityAppId} does not match selected app ${scopedAppId}`
-      : "",
-    selectedReleaseId &&
-    patchIdentityReleaseId &&
-    patchIdentityReleaseId !== selectedReleaseId
-      ? `patch release ${patchIdentityReleaseId} does not match selected release ${selectedReleaseId}`
-      : "",
-    channelFilter.trim() &&
-    patchIdentityChannel &&
-    patchIdentityChannel !== channelFilter.trim()
-      ? `patch channel ${patchIdentityChannel} does not match selected channel ${channelFilter.trim()}`
-      : "",
-  ].filter(Boolean);
-  const patchScopeWarning = patchScopeMismatches.length
-    ? patchScopeMismatches.join("; ")
-    : selectedPatchId && selectedPatchRecord && !selectedPatchInScope
-      ? "Selected patch is outside the current app/release/channel scope."
-      : "";
+  // Requirement 3: rollback is platform-safe and fail-closed. The patch's
+  // platform/release/channel/app are verified against the visible scope by the
+  // pure validator (the platform is derived from the patch's OWN base release);
+  // an unresolved release or unknown platform disables rollback and is never
+  // defaulted to Android.
+  const rollbackScope = validateRollbackScope({
+    patch: patchIdentityRecord,
+    releases: releaseRecords,
+    selectedAppId: scopedAppId,
+    selectedPlatformKey,
+    selectedChannel,
+    selectedReleaseId: selectedReleaseInScope ? selectedReleaseId : "",
+  });
+  const patchScopeWarning =
+    patchIdentityRecord && !rollbackScope.allowed
+      ? rollbackScope.reason
+      : selectedPatchId && selectedPatchRecord && !selectedPatchInScope
+        ? "Selected patch is outside the current app/platform/channel scope."
+        : "";
   const patchHealthRecordId = patchRecord
     ? recordId(patchRecord) || formatRecordText(patchRecord, ["patch_id"], "")
     : "";
@@ -719,6 +737,7 @@ export function OperatorConsolePage() {
     rollbackConfirmArmed &&
     Boolean(patchIdentityRecord) &&
     patchHealthLoadedForSelectedPatch &&
+    rollbackScope.allowed &&
     !patchScopeWarning;
   const rollbackBlockedReason = !rollbackTarget
     ? "Select a patch from this app first."
@@ -739,14 +758,14 @@ export function OperatorConsolePage() {
     : "none";
   const releaseArtifactRows: Array<{
     name: string;
-    platform: "iOS" | "Android";
+    platform: string;
     size: string;
     hash: string;
   }> = selectedReleaseRecord
     ? [
         {
           name: "base build",
-          platform: releasePlatform(selectedReleaseRecord),
+          platform: releasePlatform(selectedReleaseRecord).label,
           size: formatBytesLabel(
             getRecordValue(selectedReleaseRecord, [
               "uploaded_artifact_bytes",
@@ -761,7 +780,7 @@ export function OperatorConsolePage() {
         latestPatchRecord
           ? {
               name: `latest patch ${latestPatchLabel}`,
-              platform: releasePlatform(selectedReleaseRecord),
+              platform: releasePlatform(selectedReleaseRecord).label,
               size: formatBytesLabel(
                 getRecordValue(latestPatchRecord, [
                   "bundle_bytes",
@@ -774,7 +793,7 @@ export function OperatorConsolePage() {
             }
           : null,
       ].filter(
-        (row): row is { name: string; platform: "iOS" | "Android"; size: string; hash: string } =>
+        (row): row is { name: string; platform: string; size: string; hash: string } =>
           Boolean(row),
       )
     : [];
@@ -908,7 +927,13 @@ export function OperatorConsolePage() {
       !selectedAppRecord,
   );
   const selectedReleaseMissing = Boolean(
-    scopedAppId && selectedReleaseId && !inventoryLoading && !selectedReleaseRecord,
+    scopedAppId &&
+      selectedReleaseId &&
+      !inventoryLoading &&
+      !selectedReleaseRecord &&
+      // A conflicting deep link gets its own, more specific notice — don't also
+      // claim the release is simply "not visible".
+      !deepLinkConflicts.length,
   );
   const scopeSelectionWarning = selectedAppMissing
     ? `App ${selectedAppId} is not visible for ${operatorEmail}. Choose an app from your inventory.`
@@ -935,7 +960,8 @@ export function OperatorConsolePage() {
     {
       label: "Platform",
       value: selectedAppInScope
-        ? selectedPlatform || (availablePlatforms.length ? "choose platform" : "no releases")
+        ? selectedPlatform?.label ||
+          (availablePlatforms.length ? "choose platform" : "no releases")
         : "select app first",
     },
     {
@@ -1257,73 +1283,67 @@ export function OperatorConsolePage() {
     });
   }
 
-  function selectApp(appId: string) {
-    setAppIdFilter(appId);
-    // Selecting an app clears Platform + Channel + Release + Patch.
-    setPlatformFilter("");
-    setReleaseIdFilter("");
+  // The effective (resolved) scope, so cascade clearing and URL sync operate on
+  // App → Platform → Channel → Release → Patch consistently. All select handlers
+  // route through the pure scopeAfterSelect reducer (unit-tested) so the clearing
+  // rules match exactly.
+  function applyScopeState(next: ScopeState) {
+    setAppIdFilter(next.app);
+    setPlatformFilter(next.platform);
+    setChannelFilter(next.channel);
+    setReleaseIdFilter(next.release);
+    setPatchId(next.patch);
     setRuntimeIdFilter("");
-    setChannelFilter("stable");
-    setPatchId("");
     setRollbackConfirm("");
     setPatchHealthState(idleState);
     setRollbackState(idleState);
-    setOperatorTab("releases");
     setReleaseTab("overview");
+    setOperatorTab("releases");
+  }
+
+  function selectScope(level: "app" | "platform" | "channel" | "release", value: string) {
+    const current: ScopeState = {
+      app: scopedAppId,
+      platform: selectedPlatformKey,
+      channel: selectedChannel,
+      release: selectedReleaseInScope ? selectedReleaseId : "",
+      patch: selectedPatchId,
+    };
+    const next = scopeAfterSelect(level, current, value);
+    applyScopeState(next);
     void loadInventory(undefined, {
-      appId,
-      platform: "",
-      releaseId: "",
+      appId: next.app,
+      platform: next.platform,
+      releaseId: next.release,
       runtimeId: "",
-      channel: "stable",
-      patch: "",
+      channel: next.channel,
+      patch: next.patch,
     });
   }
 
-  function selectPlatform(nextPlatform: string) {
-    setPlatformFilter(nextPlatform);
-    // Selecting a platform clears Channel + Release + Patch.
-    setReleaseIdFilter("");
-    setRuntimeIdFilter("");
-    setChannelFilter("stable");
-    setPatchId("");
-    setRollbackConfirm("");
-    setPatchHealthState(idleState);
-    setRollbackState(idleState);
-    setOperatorTab("releases");
-    setReleaseTab("overview");
-    void loadInventory(undefined, {
-      appId: scopedAppId,
-      platform: nextPlatform,
-      releaseId: "",
-      runtimeId: "",
-      channel: "stable",
-      patch: "",
-    });
+  function selectApp(appId: string) {
+    selectScope("app", appId);
+  }
+
+  function selectPlatform(nextPlatformKey: string) {
+    selectScope("platform", nextPlatformKey);
+  }
+
+  function selectChannel(nextChannel: string) {
+    selectScope("channel", nextChannel);
   }
 
   function selectRelease(releaseId: string) {
-    setReleaseIdFilter(releaseId);
-    setPatchId("");
-    setRollbackConfirm("");
-    setPatchHealthState(idleState);
-    setRollbackState(idleState);
-    setOperatorTab("releases");
-    setReleaseTab("overview");
-    void loadInventory(undefined, {
-      appId: scopedAppId,
-      releaseId,
-      patch: "",
-    });
+    selectScope("release", releaseId);
   }
 
   function applyScopeFilters() {
     void loadInventory(undefined, {
       appId: scopedAppId,
-      platform: selectedPlatform,
+      platform: selectedPlatformKey,
       releaseId: releaseIdFilter,
       runtimeId: runtimeIdFilter,
-      channel: channelFilter,
+      channel: selectedChannel,
       patch: patchId,
     });
   }
@@ -1332,7 +1352,7 @@ export function OperatorConsolePage() {
     // Keep app + platform; clear Channel + Release + Patch below them.
     setReleaseIdFilter("");
     setRuntimeIdFilter("");
-    setChannelFilter("stable");
+    setChannelFilter("");
     setPatchId("");
     setRollbackConfirm("");
     setPatchHealthState(idleState);
@@ -1340,10 +1360,10 @@ export function OperatorConsolePage() {
     setOperatorTab("overview");
     void loadInventory(undefined, {
       appId: scopedAppId,
-      platform: selectedPlatform,
+      platform: selectedPlatformKey,
       releaseId: "",
       runtimeId: "",
-      channel: "stable",
+      channel: "",
       patch: "",
     });
   }
@@ -1428,6 +1448,17 @@ export function OperatorConsolePage() {
         status: "error",
         data: null,
         error: "Load the patch identity before rollback.",
+      });
+      return;
+    }
+    // Fail-closed: the pure validator must approve the patch's own
+    // release/platform/channel/app against the visible scope before we ever hit
+    // the server (which re-checks again).
+    if (!rollbackScope.allowed) {
+      setRollbackState({
+        status: "error",
+        data: null,
+        error: rollbackScope.reason || "Rollback is not permitted for this patch.",
       });
       return;
     }
@@ -1683,7 +1714,7 @@ export function OperatorConsolePage() {
               // HTTP 403 from /api/operator/me means the account authenticated
               // with Firebase but is not on the operator allowlist — a distinct,
               // designed state (not logged-out, not a generic error).
-              setAuthDenied(errorStatus(error) === 403);
+              setAuthDenied(classifyAuthError(errorStatus(error)) === "denied");
               setOperatorState({
                 status: "error",
                 data: null,
@@ -1937,7 +1968,7 @@ export function OperatorConsolePage() {
                     <OperatorSummaryTile
                       icon={RadioTower}
                       label="Channel"
-                      value={channelFilter.trim() || "stable"}
+                      value={selectedChannel || "stable"}
                       helper={
                         selectedReleaseInScope
                           ? "release scoped"
@@ -1957,6 +1988,7 @@ export function OperatorConsolePage() {
                 operatorState.error ||
                 inventoryError ||
                 scopeSelectionWarning ||
+                deepLinkConflicts.length ||
                 productState.error
               ) ? (
                 <div className="operator-panel mt-3 p-2.5">
@@ -1964,6 +1996,12 @@ export function OperatorConsolePage() {
                     <AlertCircle className="size-3.5" />
                     Notice
                   </div>
+                  {deepLinkConflicts.length ? (
+                    <StateNotice
+                      tone="error"
+                      message={`Conflicting link — ${deepLinkConflicts.join("; ")}. Scope was not changed; adjust the platform/channel or open the release explicitly.`}
+                    />
+                  ) : null}
                   {localPreviewNotice ? (
                     <StateNotice tone="warning" message={localPreviewNotice} />
                   ) : null}
@@ -2114,10 +2152,14 @@ export function OperatorConsolePage() {
                                       id || "Untitled app",
                                     )}
                                   </p>
-	                                  <p className={`mt-0.5 truncate font-mono text-[0.68rem] ${
+	                                  <p className={`mt-0.5 truncate text-[0.68rem] ${
                                       id === selectedAppId ? "text-white/70" : "text-[#7a7a80]"
                                     }`}>
-                                    {id || "missing app id"}
+                                    {formatRecordText(
+                                      app,
+                                      ["package_id", "package", "android_package", "bundle_id"],
+                                      "package not recorded",
+                                    )}
                                   </p>
                                 </div>
                               </div>
@@ -2175,7 +2217,15 @@ export function OperatorConsolePage() {
                         <>
                           <ChevronRight className="size-3.5" />
                           <span className="font-medium text-[#4d4d52]">
-                            {selectedPlatform}
+                            {selectedPlatform.label}
+                          </span>
+                        </>
+                      ) : null}
+                      {selectedPlatform && selectedChannel ? (
+                        <>
+                          <ChevronRight className="size-3.5" />
+                          <span className="font-medium text-[#4d4d52]">
+                            {selectedChannel}
                           </span>
                         </>
                       ) : null}
@@ -2203,13 +2253,13 @@ export function OperatorConsolePage() {
                           aria-labelledby="operator-platform-label"
                         >
                           {availablePlatforms.map((platform) => {
-                            const active = platform === selectedPlatform;
+                            const active = platform.key === selectedPlatformKey;
                             const platformReleaseCount = appReleases.filter(
-                              (release) => releasePlatform(release) === platform,
+                              (release) => releasePlatform(release).key === platform.key,
                             ).length;
                             return (
                               <button
-                                key={platform}
+                                key={platform.key}
                                 type="button"
                                 aria-pressed={active}
                                 className={`focus-ring inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-medium transition ${
@@ -2217,13 +2267,56 @@ export function OperatorConsolePage() {
                                     ? "border-black bg-black text-white"
                                     : "border-black/15 bg-white text-black hover:bg-[#f4f4f5]"
                                 }`}
-                                onClick={() => selectPlatform(platform)}
+                                onClick={() => selectPlatform(platform.key)}
                               >
-                                {platform}
+                                {platform.label}
                                 <span
                                   className={`text-xs ${active ? "text-white/70" : "text-[#8d8d93]"}`}
                                 >
                                   {platformReleaseCount}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {availableChannels.length ? (
+                      <div className="mb-4">
+                        <p
+                          className="mb-1.5 text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]"
+                          id="operator-channel-label"
+                        >
+                          Channel
+                        </p>
+                        <div
+                          className="flex flex-wrap gap-2"
+                          role="group"
+                          aria-labelledby="operator-channel-label"
+                        >
+                          {availableChannels.map((channel) => {
+                            const active = channel === selectedChannel;
+                            const channelReleaseCount = visibleReleasesForChannel(
+                              channel,
+                            ).length;
+                            return (
+                              <button
+                                key={channel}
+                                type="button"
+                                aria-pressed={active}
+                                className={`focus-ring inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-medium transition ${
+                                  active
+                                    ? "border-black bg-black text-white"
+                                    : "border-black/15 bg-white text-black hover:bg-[#f4f4f5]"
+                                }`}
+                                onClick={() => selectChannel(channel)}
+                              >
+                                {channel}
+                                <span
+                                  className={`text-xs ${active ? "text-white/70" : "text-[#8d8d93]"}`}
+                                >
+                                  {channelReleaseCount}
                                 </span>
                               </button>
                             );
@@ -2243,16 +2336,15 @@ export function OperatorConsolePage() {
 	                          <h1 className="mt-1 break-words text-2xl font-semibold tracking-[-0.025em]">
 	                            {selectedAppName}
 	                          </h1>
-                              <p className="mt-2 break-all font-mono text-xs text-[#4d4d52]">
-                                {selectedAppId || "No app selected"}
-                              </p>
 		                          <p className="mt-2 flex flex-wrap gap-2 text-sm text-[#6d6d72]">
 	                            <span>{operatorEmail}</span>
 	                            <span>·</span>
 	                            <span>
-	                              {selectedPlatform ||
+	                              {selectedPlatform?.label ||
 	                                (availablePlatforms.length
-	                                  ? availablePlatforms.join(" & ")
+	                                  ? availablePlatforms
+	                                      .map((platform) => platform.label)
+	                                      .join(" & ")
 	                                  : "no releases yet")}
 	                            </span>
 	                            <span>·</span>
@@ -2277,14 +2369,14 @@ export function OperatorConsolePage() {
                         />
                         <ConsoleMiniStat
                           label="Channel"
-                          value={channelFilter.trim() || "stable"}
+                          value={selectedChannel || "no channel"}
                         />
                       </div>
                     </div>
 
                     {!selectedReleaseInScope ? (
                     <form
-                      className="operator-table-shell mt-4 grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_150px_auto_auto]"
+                      className="operator-table-shell mt-4 grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto]"
                       onSubmit={(event) => {
                         event.preventDefault();
                         applyScopeFilters();
@@ -2301,18 +2393,6 @@ export function OperatorConsolePage() {
                           placeholder="pick a release"
                           aria-label="Filter by release"
 	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
-                        />
-                      </label>
-                      <label className="grid min-w-0 gap-1.5">
-	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
-                          Channel
-                        </span>
-                        <input
-                          value={channelFilter}
-                          onChange={(event) => setChannelFilter(event.target.value)}
-                          placeholder="stable"
-                          aria-label="Filter by channel"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 text-sm text-black outline-none placeholder:text-[#9a9aa1]"
                         />
                       </label>
                       <Button
@@ -2375,7 +2455,7 @@ export function OperatorConsolePage() {
                               Release {selectedReleaseLabel}
                             </h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6d6d72]">
-                              {selectedAppName} · {releasePlatform(selectedReleaseRecord)} · {formatRecordText(
+                              {selectedAppName} · {releasePlatform(selectedReleaseRecord).label} · {formatRecordText(
                                 selectedReleaseRecord,
                                 ["flutter_version", "flutter", "runtime_version"],
                                 "version not recorded",
@@ -2425,7 +2505,7 @@ export function OperatorConsolePage() {
                         {releaseTab === "overview" ? (
                           <div className="grid gap-4">
                             <div className="grid gap-3 md:grid-cols-4">
-                              <ConsoleMiniStat label="Platform" value={releasePlatform(selectedReleaseRecord)} />
+                              <ConsoleMiniStat label="Platform" value={releasePlatform(selectedReleaseRecord).label} />
                               <ConsoleMiniStat
                                 label="Patches"
                                 value={String(visiblePatches.length)}
@@ -2486,8 +2566,8 @@ export function OperatorConsolePage() {
                                             "0",
                                           )}
                                         </span>
-                                        <span className="mt-1 block break-all font-mono text-[0.68rem] text-[#7a7a80]">
-                                          {id}
+                                        <span className="mt-1 block text-[0.68rem] text-[#7a7a80]">
+                                          {recordDateLabel(patch)}
                                         </span>
                                       </span>
                                       <span className="rounded-full border border-black/10 bg-[#f7f7f8] px-2.5 py-1 text-xs text-[#4d4d52]">
@@ -2649,7 +2729,7 @@ export function OperatorConsolePage() {
                               />
                               <ConsoleMiniStat
                                 label="Platform"
-                                value={releasePlatform(selectedReleaseRecord)}
+                                value={releasePlatform(selectedReleaseRecord).label}
                               />
                               <ConsoleMiniStat
                                 label="Release"
@@ -2714,7 +2794,7 @@ export function OperatorConsolePage() {
                             </h2>
 	                            <p className="mt-1 text-sm text-[#6d6d72]">
                               Base builds available on{" "}
-                              {selectedPlatform || "this platform"}.
+                              {selectedPlatform?.label || "this platform"}.
                             </p>
                           </div>
                           <Button
@@ -2758,15 +2838,12 @@ export function OperatorConsolePage() {
                                         id || "Release",
                                       )}
                                     </p>
-	                                    <p className="mt-1 break-all font-mono text-[0.68rem] text-[#7a7a80]">
-	                                      {id}
-	                                    </p>
 	                                  </div>
                                     <span className="text-sm text-[#6d6d72]">
-                                      {releasePlatform(release)}
+                                      {releasePlatform(release).label}
                                     </span>
                                     <span className="text-sm text-[#6d6d72]">
-                                      {formatRecordText(release, ["channel", "track"], channelFilter.trim() || "stable")}
+                                      {formatRecordText(release, ["channel", "track"], selectedChannel || "stable")}
                                     </span>
                                     <span className="text-sm font-semibold text-black">
                                       {releasePatchCount}
@@ -2820,6 +2897,20 @@ export function OperatorConsolePage() {
                                   ["rollout_percent", "rollout", "percentage"],
                                   "",
                                 );
+                                const patchReleaseIdForRow = formatRecordText(
+                                  patch,
+                                  ["release_id", "release"],
+                                  "",
+                                );
+                                const patchReleaseVersion = formatRecordText(
+                                  patchReleaseIdForRow
+                                    ? releaseRecords.find(
+                                        (release) => recordId(release) === patchReleaseIdForRow,
+                                      ) || null
+                                    : null,
+                                  ["version", "version_name"],
+                                  patchReleaseIdForRow ? "release" : "—",
+                                );
 	                              return (
 	                                <button
 	                                  key={id || JSON.stringify(patch)}
@@ -2837,22 +2928,12 @@ export function OperatorConsolePage() {
                                         "0",
                                       )}
                                     </span>
-		                                    <span className="mt-1 block break-all font-mono text-[0.68rem] text-[#7a7a80]">
-	                                      {id}
-	                                    </span>
 		                                    <span className="mt-1 block text-xs text-[#7a7a80]">
-	                                      rollout {rollout || "default"} · app{" "}
-                                        {formatRecordText(patch, ["app_id"], scopedAppId || "unknown")}
+	                                      rollout {rollout || "default"} · {recordDateLabel(patch)}
 	                                    </span>
 	                                  </span>
-			                                  <span className="break-all font-mono text-xs text-[#6d6d72]">
-		                                    {shortRecord(
-		                                      formatRecordText(
-		                                        patch,
-		                                        ["release_id", "release"],
-		                                        selectedReleaseId || "release",
-	                                      ),
-	                                    )}
+			                                  <span className="text-xs text-[#6d6d72]">
+	                                    {patchReleaseVersion}
 	                                  </span>
 			                                  <span className="rounded-full border border-black/10 bg-[#f7f7f8] px-2.5 py-1 text-xs text-[#4d4d52]">
 		                                    {formatRecordText(patch, ["channel"], "stable")}
@@ -3120,8 +3201,10 @@ export function OperatorConsolePage() {
                               </p>
                               <dl className="mt-4 grid gap-2 border border-black/10 bg-[#f7f7f8] p-3 text-sm">
                                 {[
-                                  { label: "App", value: selectedAppInScope ? selectedAppName : patchAppLabel },
-                                  { label: "Platform", value: patchPlatform },
+                                  // Verified scope derived from the patch's OWN
+                                  // base release, not the current selectors.
+                                  { label: "App", value: patchAppLabel },
+                                  { label: "Platform", value: patchPlatform.label },
                                   { label: "Channel", value: patchChannelLabel },
                                   { label: "Release", value: patchReleaseLabel },
                                 ].map((row) => (
