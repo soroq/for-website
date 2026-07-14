@@ -1,7 +1,7 @@
 // Single source of truth for Soroq product constants surfaced on the website.
 // Update these values here only; content/pages should import from this module.
 export const PRODUCT = {
-  cliVersion: "v0.2.2",
+  cliVersion: "v0.2.4",
   packages: { soroqFlutter: "0.2.3", soroqSdk: "0.1.6" },
   frontendId: "soroq-flutter-frontend-f74781f6-6903c161",
   androidToolchainId: "soroq-android-3.44.2-release-12d3315131f5",
