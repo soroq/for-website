@@ -130,6 +130,19 @@ soroq doctor`,
         intro:
           "Everything is installed. Follow the platform quickstart to run a complete cycle: cut a base release, publish a visible patch at full rollout, verify it, then roll back.",
       },
+      {
+        heading: "Keep the CLI up to date",
+        anchor: "keep-the-cli-up-to-date",
+        intro:
+          "New Soroq releases ship through soroq update. You never need to re-run the install command to update an existing supported install — soroq update downloads, verifies, and installs the latest stable soroq and soroqctl together. Check first with --check, then update.",
+        cwd: "~",
+        commands: [
+          `soroq version         # the version you have now
+soroq update --check  # is a newer stable release available? (no changes)
+soroq update          # install the latest soroq + soroqctl`,
+        ],
+        output: `Updated successfully to ${PRODUCT.cliVersion}.`,
+      },
     ],
     related: [
       { label: "Install the CLI", slug: "cli" },
@@ -439,6 +452,25 @@ soroq release ios --engine --build`,
         ],
       },
       {
+        heading: "Update the CLI",
+        anchor: "update-the-cli",
+        intro:
+          "Once Soroq is installed, keep it current with soroq update — you never need to re-run the install command just to update an existing supported install. soroq update downloads, verifies (SHA-256), and installs the latest stable soroq and soroqctl together, atomically (both-or-neither); if any step fails it restores the previous binaries so your install stays usable.",
+        cwd: "~",
+        commands: [
+          `soroq version         # show the version you have now
+soroq update --check  # report whether a newer stable release exists (no changes)
+soroq update          # download, verify, and install the latest soroq + soroqctl`,
+        ],
+        output: `Updated successfully to ${PRODUCT.cliVersion}.`,
+        callouts: [
+          {
+            tone: "note",
+            body: "soroq update --check makes no filesystem changes — it only reports the current and latest versions. Updating the CLI does not touch your installed engine; refresh the frontend and toolchains by re-running soroq setup.",
+          },
+        ],
+      },
+      {
         heading: "Set up and manage the engine",
         anchor: "set-up-and-manage-the-engine",
         intro:
@@ -468,7 +500,8 @@ soroq release ios --engine --build`,
           },
           {
             term: "soroq update",
-            detail: "Update the installed frontend and toolchains to the latest matching signed catalog entries.",
+            detail:
+              "Self-update the Soroq CLI: download, verify, and install the latest stable soroq and soroqctl together (see Update the CLI). To refresh the engine — the frontend and toolchains — to the latest signed catalog, re-run soroq setup.",
           },
           {
             term: "soroq uninstall",
@@ -779,6 +812,13 @@ soroq version   # -> soroq ${PRODUCT.cliVersion}`,
         commands: [installCommand],
         output: `soroq ${PRODUCT.cliVersion}`,
         next: "Install the engine for your platform with soroq setup.",
+        callouts: [
+          {
+            tone: "note",
+            title: "PATH is set up for you",
+            body: "The installer also persists the bin directory to your shell profile (an idempotent managed block), so new terminals find soroq automatically. The export line above only updates your current shell.",
+          },
+        ],
       },
       {
         heading: "2. Install the engine for your platform",
