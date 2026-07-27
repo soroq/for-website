@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SoroqMark } from "@/components/SoroqMark";
+import { cn } from "@/lib/utils";
 import { PRODUCT } from "@/lib/productConstants";
 import { CommandBlock } from "@/shared/primitives";
 import { usePointerMotion, type PointerMotion } from "@/shared/motion";
@@ -803,16 +804,33 @@ export function CliOperationalStat({ label, value }: { label: string; value: str
 
 export function SiteHeader({ activePath }: { activePath?: string } = {}) {
   const items = activePath ? pageNavItems : navItems;
+  const isDark = !activePath;
 
   return (
-    <header className="px-5 pt-5 sm:px-8">
-      <div className="mx-auto flex min-h-14 min-w-0 max-w-[1420px] items-center justify-between gap-4 rounded-xl bg-white/85 px-4 shadow-soft ring-1 ring-primary/8 backdrop-blur-xl sm:px-6">
+    <header className="relative z-40 px-5 pt-5 sm:px-8">
+      <div
+        className={cn(
+          "mx-auto flex min-h-16 min-w-0 max-w-[1420px] items-center justify-between gap-4 rounded-xl border px-4 py-2.5 backdrop-blur-xl transition-colors sm:px-5",
+          isDark
+            ? "border-white/10 bg-[#11150f]/88 shadow-[0_18px_60px_rgba(0,0,0,0.34)] ring-1 ring-white/[0.04]"
+            : "border-white/55 bg-white/85 shadow-soft ring-1 ring-primary/8",
+        )}
+      >
         <a
-          className="focus-ring flex min-w-0 items-center gap-3 rounded-lg"
+          className={cn(
+            "focus-ring flex min-w-0 items-center gap-3 rounded-lg",
+            isDark && "text-white",
+          )}
           href="/"
           aria-label="Soroq home"
         >
-          <SoroqMark />
+          <SoroqMark
+            className={
+              isDark
+                ? "bg-signal text-[#08140d] shadow-[0_0_24px_rgba(39,182,122,0.2)] ring-1 ring-signal/40"
+                : undefined
+            }
+          />
           <span className="truncate text-xl font-bold tracking-normal">Soroq</span>
         </a>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Site">
@@ -821,9 +839,15 @@ export function SiteHeader({ activePath }: { activePath?: string } = {}) {
             return (
               <a
                 key={item.href}
-                className={`focus-ring rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
-                  active ? "bg-accent text-accent-foreground" : "text-muted-foreground"
-                }`}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "focus-ring rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  isDark
+                    ? "text-white/62 hover:bg-white/[0.07] hover:text-white"
+                    : active
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )}
                 href={item.href}
               >
                 {item.label}
@@ -832,10 +856,25 @@ export function SiteHeader({ activePath }: { activePath?: string } = {}) {
           })}
         </nav>
         <div className="flex shrink-0 items-center gap-2">
-          <Button asChild variant="outline" className="hidden bg-white sm:inline-flex">
+          <Button
+            asChild
+            variant="outline"
+            className={cn(
+              "hidden sm:inline-flex",
+              isDark
+                ? "border-white/15 bg-white/[0.04] text-white hover:border-white/25 hover:bg-white/[0.1] hover:text-white"
+                : "bg-white text-foreground",
+            )}
+          >
             <a href="/operator">Log in</a>
           </Button>
-          <Button asChild className="hidden sm:inline-flex">
+          <Button
+            asChild
+            className={cn(
+              "inline-flex",
+              isDark && "bg-signal text-[#0d1f15] hover:bg-signal/90",
+            )}
+          >
             <a href="/getting-started">Get started</a>
           </Button>
         </div>
