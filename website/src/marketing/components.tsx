@@ -812,7 +812,7 @@ export function SiteHeader({ activePath }: { activePath?: string } = {}) {
         className={cn(
           "mx-auto flex min-h-16 min-w-0 max-w-[1420px] items-center justify-between gap-4 rounded-xl border px-4 py-2.5 backdrop-blur-xl transition-colors sm:px-5",
           isDark
-            ? "border-white/10 bg-[#11150f]/88 shadow-[0_18px_60px_rgba(0,0,0,0.34)] ring-1 ring-white/[0.04]"
+            ? "border-white/10 bg-[#111214]/88 shadow-[0_18px_60px_rgba(0,0,0,0.34)] ring-1 ring-white/[0.04]"
             : "border-white/55 bg-white/85 shadow-soft ring-1 ring-primary/8",
         )}
       >
@@ -827,7 +827,7 @@ export function SiteHeader({ activePath }: { activePath?: string } = {}) {
           <SoroqMark
             className={
               isDark
-                ? "bg-signal text-[#08140d] shadow-[0_0_24px_rgba(39,182,122,0.2)] ring-1 ring-signal/40"
+                ? "bg-signal text-[#0a0b0c] shadow-[0_0_24px_rgba(39,182,122,0.2)] ring-1 ring-signal/40"
                 : undefined
             }
           />
@@ -872,7 +872,7 @@ export function SiteHeader({ activePath }: { activePath?: string } = {}) {
             asChild
             className={cn(
               "inline-flex",
-              isDark && "bg-signal text-[#0d1f15] hover:bg-signal/90",
+              isDark && "bg-signal text-[#0d0d0f] hover:bg-signal/90",
             )}
           >
             <a href="/getting-started">Get started</a>
@@ -1019,7 +1019,7 @@ export function MarketingHome() {
               and experimental iOS paths.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="h-12 rounded-xl bg-signal px-6 text-[#0d1f15] hover:bg-signal/90">
+              <Button asChild size="lg" className="h-12 rounded-xl bg-signal px-6 text-[#0d0d0f] hover:bg-signal/90">
                 <a href="/getting-started">
                   Get started
                   <ArrowRight data-icon="inline-end" />
@@ -1063,7 +1063,7 @@ export function MarketingHome() {
           </motion.div>
 
           <motion.div
-            className="relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#12140f]/90 p-5 shadow-card ring-1 ring-white/5 sm:p-6"
+            className="relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#111214]/90 p-5 shadow-card ring-1 ring-white/5 sm:p-6"
             initial={shouldReduceMotion ? false : { opacity: 0, y: 22 }}
             animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
@@ -1336,7 +1336,7 @@ export function MarketingHome() {
             </div>
             <div className="flex flex-col gap-4">
               <CommandBlock code={installCommand} />
-              <Button asChild size="lg" className="h-12 w-fit rounded-xl bg-signal px-6 text-[#0d1f15] hover:bg-signal/90">
+              <Button asChild size="lg" className="h-12 w-fit rounded-xl bg-signal px-6 text-[#0d0d0f] hover:bg-signal/90">
                 <a href="/cli">
                   Read the CLI reference
                   <ArrowRight data-icon="inline-end" />
@@ -1421,7 +1421,7 @@ export function MarketingHome() {
 
         {/* CTA — docs + console */}
         <motion.section {...reveal()} className="border-t border-white/8 py-16">
-          <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#12140f] p-8 sm:p-12">
+          <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#111214] p-8 sm:p-12">
             <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
               <div>
                 <h2 className="max-w-2xl text-3xl font-bold leading-tight text-white sm:text-4xl">
@@ -1433,7 +1433,7 @@ export function MarketingHome() {
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="h-12 rounded-xl bg-signal px-6 text-[#0d1f15] hover:bg-signal/90">
+                <Button asChild size="lg" className="h-12 rounded-xl bg-signal px-6 text-[#0d0d0f] hover:bg-signal/90">
                   <a href="/getting-started">
                     Get started
                     <ArrowRight data-icon="inline-end" />
