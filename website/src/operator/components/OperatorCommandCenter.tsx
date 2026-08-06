@@ -34,17 +34,17 @@ export function OperatorCommandCenter({
       <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
         <div className="relative z-10 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-black/10 bg-[#f4f4f5] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-black">
+            <span className="rounded-full border border-white/10 bg-[#17181b] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#f7f8f8]">
               {commandState}
             </span>
-            <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 font-mono text-[0.65rem] text-[#6d6d72]">
+            <span className="rounded-full border border-white/10 bg-[#0e0f11] px-2.5 py-1 font-mono text-[0.65rem] text-[#8a8f98]">
               {latestPatchId ? shortRecord(latestPatchId) : "no patch selected"}
             </span>
           </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-black">
+          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[#f7f8f8]">
             Patch management
           </h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#6d6d72]">
+          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#8a8f98]">
             Releases, patches, health, and rollback in one scoped view.
           </p>
         </div>
@@ -65,7 +65,7 @@ export function OperatorCommandCenter({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-9 border-black/10 bg-white px-4 text-black hover:bg-[#f3f3f4]"
+                  className="h-9 border-white/10 bg-[#0e0f11] px-4 text-[#f7f8f8] hover:bg-[#17181b]"
                   disabled={!configReady}
                   onClick={onGithubSignIn}
                 >
@@ -78,7 +78,7 @@ export function OperatorCommandCenter({
             <Button
               type="button"
               variant="outline"
-              className="h-9 border-black/10 bg-white px-4 text-black hover:bg-[#f3f3f4]"
+              className="h-9 border-white/10 bg-[#0e0f11] px-4 text-[#f7f8f8] hover:bg-[#17181b]"
               onClick={onSignOut}
             >
               <LogOut className="size-4" />
@@ -88,16 +88,16 @@ export function OperatorCommandCenter({
         </div>
       </div>
 
-      <div className="relative z-10 mt-4 grid grid-cols-2 gap-3 border-t border-black/10 pt-3 xl:grid-cols-4">
+      <div className="relative z-10 mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-3 xl:grid-cols-4">
         {scopeFacts.map((fact) => (
           <div
             key={fact.label}
             className="min-w-0"
           >
-            <p className="text-[0.62rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
+            <p className="text-[0.62rem] font-medium uppercase tracking-[0.13em] text-[#82858d]">
               {fact.label}
             </p>
-            <p className="mt-1 truncate text-sm font-semibold text-black">
+            <p className="mt-1 truncate text-sm font-semibold text-[#f7f8f8]">
               {fact.value}
             </p>
           </div>

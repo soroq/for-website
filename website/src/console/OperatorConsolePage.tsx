@@ -705,7 +705,7 @@ export function OperatorConsolePage() {
       label: "Selected",
       value: patchId.trim() ? 1 : 0,
       helper: "loaded into health/rollback",
-      tone: "bg-[#9a9aa1]",
+      tone: "bg-[#82858d]",
     },
   ];
   const patchStateMax = Math.max(...patchStateBars.map((bar) => bar.value), 1);
@@ -1584,7 +1584,7 @@ export function OperatorConsolePage() {
     // an operator token exists.
     if (!authToken) {
       return (
-        <main className="operator-backdrop grid min-h-screen place-items-center overflow-x-hidden px-4 py-10 text-[#111111]">
+        <main className="operator-backdrop grid min-h-screen place-items-center overflow-x-hidden px-4 py-10 text-[#f7f8f8]">
           <section className="operator-panel w-full max-w-md p-6 sm:p-8">
             <a
               href="/"
@@ -1594,14 +1594,14 @@ export function OperatorConsolePage() {
               <SoroqMark className="size-9" textClassName="text-sm" />
               <span>
                 <span className="block text-sm font-semibold tracking-tight">Soroq</span>
-                <span className="block text-xs text-[#7a7a80]">Operator console</span>
+                <span className="block text-xs text-[#8a8f98]">Operator console</span>
               </span>
             </a>
 
             <h1 className="mt-6 text-xl font-semibold tracking-[-0.02em]">
               Sign in to the operator console
             </h1>
-            <p className="mt-2 text-sm leading-6 text-[#6d6d72]">
+            <p className="mt-2 text-sm leading-6 text-[#8a8f98]">
               Inspect your app inventory, release health, and patch receipts, and
               guard rollbacks — all behind an enabled operator sign-in.
             </p>
@@ -1643,11 +1643,11 @@ export function OperatorConsolePage() {
               {authError ? <StateNotice tone="error" message={authError} /> : null}
             </div>
 
-            <p className="mt-6 border-t border-black/10 pt-4 text-sm text-[#6d6d72]">
+            <p className="mt-6 border-t border-white/10 pt-4 text-sm text-[#8a8f98]">
               Prefer the terminal? See the{" "}
               <a
                 href="https://docs.soroq.dev/cli"
-                className="focus-ring font-medium text-black underline underline-offset-4 hover:text-[#2b2b2d]"
+                className="focus-ring font-medium text-[#f7f8f8] underline underline-offset-4 hover:text-[#2b2b2d]"
               >
                 CLI &amp; browser-login docs
               </a>
@@ -1659,7 +1659,7 @@ export function OperatorConsolePage() {
     }
 
     return (
-      <main className="operator-backdrop min-h-screen overflow-x-hidden text-[#111111]">
+      <main className="operator-backdrop min-h-screen overflow-x-hidden text-[#f7f8f8]">
         <section className="relative z-10 grid min-h-screen min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[236px_minmax(0,1fr)]">
           <OperatorSidebar
             operatorTab={operatorTab}
@@ -1756,7 +1756,7 @@ export function OperatorConsolePage() {
                 productState.error
               ) ? (
                 <div className="operator-panel mt-3 p-2.5">
-                  <div className="mb-2 flex items-center gap-2 px-1 text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#7a7a80]">
+                  <div className="mb-2 flex items-center gap-2 px-1 text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#8a8f98]">
                     <AlertCircle className="size-3.5" />
                     Notice
                   </div>
@@ -1801,7 +1801,7 @@ export function OperatorConsolePage() {
                     <h2 className="mt-4 text-xl font-semibold tracking-[-0.02em]">
                       Sign in to load the console.
                     </h2>
-                    <p className="mt-2 text-sm leading-6 text-[#6d6d72]">
+                    <p className="mt-2 text-sm leading-6 text-[#8a8f98]">
                       Inventory, release health, patch history, and rollback controls stay hidden until an enabled operator signs in.
                     </p>
                     <Button
@@ -1821,20 +1821,20 @@ export function OperatorConsolePage() {
                 }`}
               >
                 <section className="operator-panel overflow-hidden">
-		                  <div className="flex items-center justify-between gap-4 border-b border-black/10 px-4 py-3">
+		                  <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3">
                     <div>
-		                      <p className="text-sm font-semibold text-black">{inventoryScopeLabel}</p>
-		                      <p className="mt-0.5 text-xs text-[#7a7a80]">
+		                      <p className="text-sm font-semibold text-[#f7f8f8]">{inventoryScopeLabel}</p>
+		                      <p className="mt-0.5 text-xs text-[#8a8f98]">
                             Select an app before inspecting releases, patches, artifacts, or rollback state.
                           </p>
                     </div>
-		                    <span className="rounded-full border border-black/10 bg-[#f7f7f8] px-2.5 py-1 text-xs font-medium text-[#6d6d72]">
+		                    <span className="rounded-full border border-white/10 bg-[#17181b] px-2.5 py-1 text-xs font-medium text-[#8a8f98]">
 	                      {visibleApps.length} shown
                     </span>
                   </div>
 
                   <div className="p-3.5">
-                    <div className="mb-3 flex items-center justify-between gap-3 text-xs text-[#6d6d72]">
+                    <div className="mb-3 flex items-center justify-between gap-3 text-xs text-[#8a8f98]">
                       <span>
                         {appSearchQuery
                           ? `Filtered by "${appSearch.trim()}"`
@@ -1843,7 +1843,7 @@ export function OperatorConsolePage() {
                       {appSearchQuery ? (
                         <button
                           type="button"
-                          className="font-medium text-black underline-offset-4 hover:underline"
+                          className="font-medium text-[#f7f8f8] underline-offset-4 hover:underline"
                           onClick={() => {
                             setAppSearch("");
                             setAppListLimit(24);
@@ -1860,7 +1860,7 @@ export function OperatorConsolePage() {
                           {Array.from({ length: 4 }).map((_, index) => (
                             <li
                               key={index}
-                              className="h-[68px] animate-pulse border border-black/10 bg-[#f4f4f5]"
+                              className="h-[68px] animate-pulse border border-white/10 bg-[#17181b]"
                             />
                           ))}
                         </ul>
@@ -1880,10 +1880,10 @@ export function OperatorConsolePage() {
                               key={id || JSON.stringify(app)}
                               type="button"
                               aria-pressed={id === selectedAppId}
-	                              className={`focus-ring group border px-3 py-3 text-left transition hover:border-black/20 hover:bg-[#f4f4f5] ${
+	                              className={`focus-ring group border px-3 py-3 text-left transition hover:border-white/20 hover:bg-[#17181b] ${
 	                                id === selectedAppId
 	                                  ? "border-black bg-black text-white shadow-sm"
-	                                  : "border-black/10 bg-white text-black"
+	                                  : "border-white/10 bg-[#0e0f11] text-[#f7f8f8]"
 	                              }`}
                               disabled={!id}
                               onClick={() => selectApp(id)}
@@ -1891,8 +1891,8 @@ export function OperatorConsolePage() {
                               <div className="flex items-center gap-3">
 	                                <span className={`grid size-9 shrink-0 place-items-center border font-mono text-xs font-semibold transition ${
                                       id === selectedAppId
-                                        ? "border-white/20 bg-white text-black"
-                                        : "border-black/10 bg-[#f7f7f8] text-black group-hover:border-black/20"
+                                        ? "border-white/20 bg-[#0e0f11] text-[#f7f8f8]"
+                                        : "border-white/10 bg-[#17181b] text-[#f7f8f8] group-hover:border-white/20"
                                     }`}>
                                   {(formatRecordText(
                                     app,
@@ -1911,14 +1911,14 @@ export function OperatorConsolePage() {
                                     )}
                                   </p>
 	                                  <p className={`mt-0.5 truncate font-mono text-[0.68rem] ${
-                                      id === selectedAppId ? "text-white/70" : "text-[#7a7a80]"
+                                      id === selectedAppId ? "text-white/70" : "text-[#8a8f98]"
                                     }`}>
                                     {id || "missing app id"}
                                   </p>
                                 </div>
                               </div>
 	                              <div className={`mt-3 flex gap-2 text-xs ${
-                                  id === selectedAppId ? "text-white/70" : "text-[#6d6d72]"
+                                  id === selectedAppId ? "text-white/70" : "text-[#8a8f98]"
                                 }`}>
                                 <span>{appReleaseCount} releases</span>
                                 <span>·</span>
@@ -1942,7 +1942,7 @@ export function OperatorConsolePage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="mt-3 h-9 w-full border-black/10 bg-white text-black hover:bg-[#f3f3f4]"
+                        className="mt-3 h-9 w-full border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b]"
                         onClick={() => setAppListLimit((limit) => limit + 24)}
                       >
                         Show {Math.min(24, hiddenVisibleAppCount)} more apps
@@ -1953,24 +1953,24 @@ export function OperatorConsolePage() {
 
                 {selectedAppInScope ? (
                 <section className="operator-panel min-w-0 overflow-hidden">
-	                  <div className="border-b border-black/10 p-4">
-                    <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-[#7a7a80]">
+	                  <div className="border-b border-white/10 p-4">
+                    <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-[#8a8f98]">
                       <button
                         type="button"
-                        className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-2.5 py-1 font-medium text-black hover:bg-[#f4f4f5]"
+                        className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0e0f11] px-2.5 py-1 font-medium text-[#f7f8f8] hover:bg-[#17181b]"
                         onClick={goHome}
                       >
                         <Home className="size-3.5" />
                         Apps
                       </button>
                       <ChevronRight className="size-3.5" />
-                      <span className="max-w-[42ch] truncate font-medium text-black">
+                      <span className="max-w-[42ch] truncate font-medium text-[#f7f8f8]">
                         {selectedAppName}
                       </span>
                       {selectedReleaseInScope ? (
                         <>
                           <ChevronRight className="size-3.5" />
-                          <span className="font-mono text-[#4d4d52]">
+                          <span className="font-mono text-[#b4b8c0]">
                             {selectedReleaseLabel}
                           </span>
                         </>
@@ -1982,16 +1982,16 @@ export function OperatorConsolePage() {
                           <PackageCheck className="size-5" />
                         </span>
                         <div className="min-w-0">
-		                          <p className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#8d8d93]">
+		                          <p className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#82858d]">
 	                            Selected app workspace
 	                          </p>
 	                          <h1 className="mt-1 break-words text-2xl font-semibold tracking-[-0.025em]">
 	                            {selectedAppName}
 	                          </h1>
-                              <p className="mt-2 break-all font-mono text-xs text-[#4d4d52]">
+                              <p className="mt-2 break-all font-mono text-xs text-[#b4b8c0]">
                                 {selectedAppId || "No app selected"}
                               </p>
-		                          <p className="mt-2 flex flex-wrap gap-2 text-sm text-[#6d6d72]">
+		                          <p className="mt-2 flex flex-wrap gap-2 text-sm text-[#8a8f98]">
 	                            <span>{operatorEmail}</span>
 	                            <span>·</span>
 	                            <span>Android</span>
@@ -2037,7 +2037,7 @@ export function OperatorConsolePage() {
                       }}
                     >
                       <label className="grid min-w-0 gap-1.5">
-	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
+	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#82858d]">
                           Scope controls
                         </span>
                         <input
@@ -2045,29 +2045,29 @@ export function OperatorConsolePage() {
                           value={releaseIdFilter}
                           onChange={(event) => setReleaseIdFilter(event.target.value)}
                           placeholder="release ID"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
+	                          className="focus-ring h-9 border border-white/10 bg-[#0e0f11] px-3 font-mono text-xs text-[#f7f8f8] outline-none placeholder:text-[#82858d]"
                         />
                       </label>
                       <label className="grid min-w-0 gap-1.5">
-	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
+	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#82858d]">
                           Runtime
                         </span>
                         <input
                           value={runtimeIdFilter}
                           onChange={(event) => setRuntimeIdFilter(event.target.value)}
                           placeholder="runtime ID"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
+	                          className="focus-ring h-9 border border-white/10 bg-[#0e0f11] px-3 font-mono text-xs text-[#f7f8f8] outline-none placeholder:text-[#82858d]"
                         />
                       </label>
                       <label className="grid min-w-0 gap-1.5">
-	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
+	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#82858d]">
                           Channel
                         </span>
                         <input
                           value={channelFilter}
                           onChange={(event) => setChannelFilter(event.target.value)}
                           placeholder="stable"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
+	                          className="focus-ring h-9 border border-white/10 bg-[#0e0f11] px-3 font-mono text-xs text-[#f7f8f8] outline-none placeholder:text-[#82858d]"
                         />
                       </label>
                       <Button
@@ -2080,7 +2080,7 @@ export function OperatorConsolePage() {
                       <Button
                         type="button"
                         variant="outline"
-	                        className="h-9 self-end border-black/10 bg-white px-4 text-black hover:bg-[#f3f3f4]"
+	                        className="h-9 self-end border-white/10 bg-[#0e0f11] px-4 text-[#f7f8f8] hover:bg-[#17181b]"
                         disabled={!authToken || inventoryLoading}
                         onClick={clearScopeFilters}
                       >
@@ -2095,7 +2095,7 @@ export function OperatorConsolePage() {
                     </form>
                     ) : null}
                     {!selectedReleaseInScope ? (
-                      <div className="mt-4 flex min-w-0 gap-1 overflow-x-auto border-t border-black/10 pt-3">
+                      <div className="mt-4 flex min-w-0 gap-1 overflow-x-auto border-t border-white/10 pt-3">
                         {appWorkspaceTabs.map(({ key, label, icon: Icon }) => {
                           const active = operatorTab === key;
                           return (
@@ -2104,8 +2104,8 @@ export function OperatorConsolePage() {
                               type="button"
                               className={`focus-ring flex shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition ${
                                 active
-                                  ? "border-black text-black"
-                                  : "border-transparent text-[#6d6d72] hover:text-black"
+                                  ? "border-black text-[#f7f8f8]"
+                                  : "border-transparent text-[#8a8f98] hover:text-[#f7f8f8]"
                               }`}
                               onClick={() => setOperatorTab(key)}
                             >
@@ -2121,15 +2121,15 @@ export function OperatorConsolePage() {
 	                  <div className="p-4">
                     {selectedReleaseInScope ? (
                       <div className="grid gap-4">
-                        <div className="flex flex-col justify-between gap-3 border-b border-black/10 pb-4 md:flex-row md:items-start">
+                        <div className="flex flex-col justify-between gap-3 border-b border-white/10 pb-4 md:flex-row md:items-start">
                           <div className="min-w-0">
-                            <p className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#8d8d93]">
+                            <p className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#82858d]">
                               Release workspace
                             </p>
                             <h2 className="mt-1 text-2xl font-semibold tracking-[-0.025em]">
                               Release {selectedReleaseLabel}
                             </h2>
-                            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6d6d72]">
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a8f98]">
                               {selectedAppName} · {formatRecordText(
                                 selectedReleaseRecord,
                                 ["flutter_version", "flutter", "runtime_version"],
@@ -2140,7 +2140,7 @@ export function OperatorConsolePage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="h-9 w-fit border-black/10 bg-white text-black hover:bg-[#f3f3f4]"
+                            className="h-9 w-fit border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b]"
                             onClick={() => {
                               setReleaseIdFilter("");
                               setReleaseTab("overview");
@@ -2156,7 +2156,7 @@ export function OperatorConsolePage() {
                           </Button>
                         </div>
 
-                        <div className="flex min-w-0 gap-1 overflow-x-auto border-b border-black/10">
+                        <div className="flex min-w-0 gap-1 overflow-x-auto border-b border-white/10">
                           {releaseTabs.map(({ key, label, icon: Icon }) => {
                             const active = releaseTab === key;
                             return (
@@ -2165,8 +2165,8 @@ export function OperatorConsolePage() {
                                 type="button"
                                 className={`focus-ring flex shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition ${
                                   active
-                                    ? "border-black text-black"
-                                    : "border-transparent text-[#6d6d72] hover:text-black"
+                                    ? "border-black text-[#f7f8f8]"
+                                    : "border-transparent text-[#8a8f98] hover:text-[#f7f8f8]"
                                 }`}
                                 onClick={() => setReleaseTab(key)}
                               >
@@ -2193,16 +2193,16 @@ export function OperatorConsolePage() {
                             </div>
 
                             <div className="operator-table-shell overflow-hidden">
-                              <div className="flex items-center justify-between gap-4 border-b border-black/10 bg-[#f7f7f8] px-4 py-3">
+                              <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-[#17181b] px-4 py-3">
                                 <div>
-                                  <h3 className="text-sm font-semibold text-black">
+                                  <h3 className="text-sm font-semibold text-[#f7f8f8]">
                                     Patches on this release
                                   </h3>
-                                  <p className="mt-1 text-xs text-[#6d6d72]">
+                                  <p className="mt-1 text-xs text-[#8a8f98]">
                                     Grouped by the selected channel and exact base release.
                                   </p>
                                 </div>
-                                <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs text-[#4d4d52]">
+                                <span className="rounded-full border border-white/10 bg-[#0e0f11] px-2.5 py-1 text-xs text-[#b4b8c0]">
                                   {visiblePatches.length} patches
                                 </span>
                               </div>
@@ -2218,7 +2218,7 @@ export function OperatorConsolePage() {
                                     <button
                                       key={id || JSON.stringify(patch)}
                                       type="button"
-                                      className="operator-table-row grid w-full gap-3 border-b border-black/10 px-4 py-3 text-left last:border-b-0 md:grid-cols-[minmax(0,1fr)_120px_120px_140px]"
+                                      className="operator-table-row grid w-full gap-3 border-b border-white/10 px-4 py-3 text-left last:border-b-0 md:grid-cols-[minmax(0,1fr)_120px_120px_140px]"
                                       disabled={!id || patchHealthState.status === "loading"}
                                       onClick={() => {
                                         selectPatch(id);
@@ -2234,14 +2234,14 @@ export function OperatorConsolePage() {
                                             "0",
                                           )}
                                         </span>
-                                        <span className="mt-1 block break-all font-mono text-[0.68rem] text-[#7a7a80]">
+                                        <span className="mt-1 block break-all font-mono text-[0.68rem] text-[#8a8f98]">
                                           {id}
                                         </span>
                                       </span>
-                                      <span className="rounded-full border border-black/10 bg-[#f7f7f8] px-2.5 py-1 text-xs text-[#4d4d52]">
+                                      <span className="rounded-full border border-white/10 bg-[#17181b] px-2.5 py-1 text-xs text-[#b4b8c0]">
                                         {formatRecordText(patch, ["channel"], "stable")}
                                       </span>
-                                      <span className="text-xs font-medium text-[#4d4d52]">
+                                      <span className="text-xs font-medium text-[#b4b8c0]">
                                         {formatRecordText(
                                           patch,
                                           ["kind", "patch_kind", "type"],
@@ -2251,7 +2251,7 @@ export function OperatorConsolePage() {
                                       <span
                                         className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${
                                           rolledBack
-                                            ? "border border-black/20 bg-[#efeff0] text-black"
+                                            ? "border border-white/20 bg-[#1c1d21] text-[#f7f8f8]"
                                             : "border border-black bg-black text-white"
                                         }`}
                                       >
@@ -2289,19 +2289,19 @@ export function OperatorConsolePage() {
                                 <div key={bar.label} className="operator-panel-soft p-4">
                                   <div className="flex items-start justify-between gap-4">
                                     <div>
-                                      <p className="text-sm font-semibold text-black">
+                                      <p className="text-sm font-semibold text-[#f7f8f8]">
                                         Patch {bar.label.toLowerCase()}
                                       </p>
-                                      <p className="mt-1 text-xs text-[#6d6d72]">
+                                      <p className="mt-1 text-xs text-[#8a8f98]">
                                         {bar.helper}
                                       </p>
                                     </div>
-                                    <Download className="size-4 text-[#6d6d72]" />
+                                    <Download className="size-4 text-[#8a8f98]" />
                                   </div>
                                   <p className="mt-5 text-4xl font-semibold tracking-[-0.04em]">
                                     {bar.value}
                                   </p>
-                                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e5e5e7]">
+                                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#23252a]">
                                     <div
                                       className={`h-full rounded-full ${bar.tone}`}
                                       style={{
@@ -2326,7 +2326,7 @@ export function OperatorConsolePage() {
 
                         {releaseTab === "artifacts" ? (
                           <div className="operator-table-shell overflow-x-auto">
-                            <div className="grid min-w-[720px] grid-cols-[minmax(220px,1fr)_140px_140px_160px] gap-3 border-b border-black/10 bg-[#f7f7f8] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+                            <div className="grid min-w-[720px] grid-cols-[minmax(220px,1fr)_140px_140px_160px] gap-3 border-b border-white/10 bg-[#17181b] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                               <span>Name</span>
                               <span>Platform</span>
                               <span>Size</span>
@@ -2336,18 +2336,18 @@ export function OperatorConsolePage() {
                               releaseArtifactRows.map((artifact) => (
                                 <div
                                   key={`${artifact.name}-${artifact.hash}`}
-                                  className="operator-table-row grid min-w-[720px] grid-cols-[minmax(220px,1fr)_140px_140px_160px] gap-3 border-b border-black/10 px-4 py-3 last:border-b-0"
+                                  className="operator-table-row grid min-w-[720px] grid-cols-[minmax(220px,1fr)_140px_140px_160px] gap-3 border-b border-white/10 px-4 py-3 last:border-b-0"
                                 >
-                                  <span className="text-sm font-semibold text-black">
+                                  <span className="text-sm font-semibold text-[#f7f8f8]">
                                     {artifact.name}
                                   </span>
-                                  <span className="text-sm text-[#6d6d72]">
+                                  <span className="text-sm text-[#8a8f98]">
                                     {artifact.platform}
                                   </span>
-                                  <span className="font-mono text-xs text-[#4d4d52]">
+                                  <span className="font-mono text-xs text-[#b4b8c0]">
                                     {artifact.size}
                                   </span>
-                                  <span className="font-mono text-xs text-[#4d4d52]">
+                                  <span className="font-mono text-xs text-[#b4b8c0]">
                                     {artifact.hash}
                                   </span>
                                 </div>
@@ -2366,7 +2366,7 @@ export function OperatorConsolePage() {
                         {releaseTab === "notes" ? (
                           <div className="grid gap-3">
                             <label className="grid gap-2">
-                              <span className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+                              <span className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                                 Private release note
                               </span>
                               <textarea
@@ -2379,10 +2379,10 @@ export function OperatorConsolePage() {
                                   }));
                                 }}
                                 placeholder="Add notes for this release on this browser."
-                                className="focus-ring min-h-32 border border-black/10 bg-white px-3 py-3 text-sm leading-6 text-black outline-none placeholder:text-[#9a9aa1]"
+                                className="focus-ring min-h-32 border border-white/10 bg-[#0e0f11] px-3 py-3 text-sm leading-6 text-[#f7f8f8] outline-none placeholder:text-[#82858d]"
                               />
                             </label>
-                            <p className="text-xs text-[#6d6d72]">
+                            <p className="text-xs text-[#8a8f98]">
                               Notes are saved locally in this browser until hosted organization notes are added.
                             </p>
                           </div>
@@ -2441,14 +2441,14 @@ export function OperatorConsolePage() {
                             <h2 className="text-lg font-semibold tracking-tight">
                               Releases
                             </h2>
-	                            <p className="mt-1 text-sm text-[#6d6d72]">
+	                            <p className="mt-1 text-sm text-[#8a8f98]">
                               Store bases available for this app.
                             </p>
                           </div>
                           <Button
                             type="button"
                             variant="outline"
-	                            className="h-9 w-fit rounded-xl border-black/10 bg-white text-black hover:bg-[#f3f3f4]"
+	                            className="h-9 w-fit rounded-xl border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b]"
                             disabled={!authToken || inventoryLoading}
                             onClick={refreshOperatorSurface}
                           >
@@ -2457,7 +2457,7 @@ export function OperatorConsolePage() {
                           </Button>
                         </div>
                         <div className="operator-table-shell overflow-x-auto">
-		                          <div className="grid min-w-[760px] grid-cols-[minmax(220px,1fr)_160px_140px_120px] gap-3 border-b border-black/10 bg-[#f7f7f8] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+		                          <div className="grid min-w-[760px] grid-cols-[minmax(220px,1fr)_160px_140px_120px] gap-3 border-b border-white/10 bg-[#17181b] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
 	                            <span>Release</span>
 	                            <span>Runtime</span>
                               <span>Channel</span>
@@ -2474,7 +2474,7 @@ export function OperatorConsolePage() {
 	                                <button
 	                                  key={id || JSON.stringify(release)}
 	                                  type="button"
-		                                  className="operator-table-row grid min-w-[760px] w-full grid-cols-[minmax(220px,1fr)_160px_140px_120px] gap-3 border-b border-black/10 bg-transparent px-4 py-3.5 text-left last:border-b-0"
+		                                  className="operator-table-row grid min-w-[760px] w-full grid-cols-[minmax(220px,1fr)_160px_140px_120px] gap-3 border-b border-white/10 bg-transparent px-4 py-3.5 text-left last:border-b-0"
 	                                  disabled={!id}
 	                                  onClick={() => selectRelease(id)}
 	                                >
@@ -2486,17 +2486,17 @@ export function OperatorConsolePage() {
                                         id || "Release",
                                       )}
                                     </p>
-	                                    <p className="mt-1 break-all font-mono text-[0.68rem] text-[#7a7a80]">
+	                                    <p className="mt-1 break-all font-mono text-[0.68rem] text-[#8a8f98]">
 	                                      {id}
 	                                    </p>
 	                                  </div>
-                                    <span className="break-all font-mono text-xs text-[#6d6d72]">
+                                    <span className="break-all font-mono text-xs text-[#8a8f98]">
                                       {formatRecordText(release, ["runtime_id", "runtime"], "runtime pending")}
                                     </span>
-                                    <span className="text-sm text-[#6d6d72]">
+                                    <span className="text-sm text-[#8a8f98]">
                                       {formatRecordText(release, ["channel", "track"], channelFilter.trim() || "stable")}
                                     </span>
-                                    <span className="text-sm font-semibold text-black">
+                                    <span className="text-sm font-semibold text-[#f7f8f8]">
                                       {releasePatchCount}
                                     </span>
 	                                </button>
@@ -2519,16 +2519,16 @@ export function OperatorConsolePage() {
 	                            <h2 className="text-lg font-semibold tracking-tight">
 	                              Patch registry
 	                            </h2>
-	                            <p className="mt-1 text-sm text-[#6d6d72]">
+	                            <p className="mt-1 text-sm text-[#8a8f98]">
 	                              Current patches for the selected app and release.
 	                            </p>
 	                          </div>
-		                          <span className="w-fit rounded-full border border-black/10 bg-[#f7f7f8] px-3 py-1.5 text-xs font-medium text-[#6d6d72]">
+		                          <span className="w-fit rounded-full border border-white/10 bg-[#17181b] px-3 py-1.5 text-xs font-medium text-[#8a8f98]">
 	                            {visiblePatches.length} visible
 	                          </span>
 	                        </div>
 		                          <div className="operator-table-shell overflow-x-auto">
-			                          <div className="grid min-w-[860px] grid-cols-[minmax(260px,1fr)_170px_120px_120px_130px] gap-3 border-b border-black/10 bg-[#f7f7f8] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+			                          <div className="grid min-w-[860px] grid-cols-[minmax(260px,1fr)_170px_120px_120px_130px] gap-3 border-b border-white/10 bg-[#17181b] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
 		                            <span>Patch</span>
 		                            <span>Release</span>
 		                            <span>Channel</span>
@@ -2552,7 +2552,7 @@ export function OperatorConsolePage() {
 	                                <button
 	                                  key={id || JSON.stringify(patch)}
 	                                  type="button"
-			                                  className="operator-table-row grid min-w-[860px] w-full grid-cols-[minmax(260px,1fr)_170px_120px_120px_130px] items-center gap-3 border-b border-black/10 bg-transparent px-4 py-3.5 text-left last:border-b-0"
+			                                  className="operator-table-row grid min-w-[860px] w-full grid-cols-[minmax(260px,1fr)_170px_120px_120px_130px] items-center gap-3 border-b border-white/10 bg-transparent px-4 py-3.5 text-left last:border-b-0"
 	                                  disabled={!id || patchHealthState.status === "loading"}
 	                                  onClick={() => selectPatch(id)}
 	                                >
@@ -2565,15 +2565,15 @@ export function OperatorConsolePage() {
                                         "0",
                                       )}
                                     </span>
-		                                    <span className="mt-1 block break-all font-mono text-[0.68rem] text-[#7a7a80]">
+		                                    <span className="mt-1 block break-all font-mono text-[0.68rem] text-[#8a8f98]">
 	                                      {id}
 	                                    </span>
-		                                    <span className="mt-1 block text-xs text-[#7a7a80]">
+		                                    <span className="mt-1 block text-xs text-[#8a8f98]">
 	                                      rollout {rollout || "default"} · app{" "}
                                         {formatRecordText(patch, ["app_id"], scopedAppId || "unknown")}
 	                                    </span>
 	                                  </span>
-			                                  <span className="break-all font-mono text-xs text-[#6d6d72]">
+			                                  <span className="break-all font-mono text-xs text-[#8a8f98]">
 		                                    {shortRecord(
 		                                      formatRecordText(
 		                                        patch,
@@ -2582,16 +2582,16 @@ export function OperatorConsolePage() {
 	                                      ),
 	                                    )}
 	                                  </span>
-			                                  <span className="rounded-full border border-black/10 bg-[#f7f7f8] px-2.5 py-1 text-xs text-[#4d4d52]">
+			                                  <span className="rounded-full border border-white/10 bg-[#17181b] px-2.5 py-1 text-xs text-[#b4b8c0]">
 		                                    {formatRecordText(patch, ["channel"], "stable")}
 		                                  </span>
-                                  <span className="text-xs font-medium text-[#4d4d52]">
+                                  <span className="text-xs font-medium text-[#b4b8c0]">
                                     {formatRecordText(patch, ["kind", "patch_kind", "type"], "unknown")}
                                   </span>
 	                                  <span
 	                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
 	                                      rolledBack
-	                                        ? "border border-black/20 bg-[#efeff0] text-black"
+	                                        ? "border border-white/20 bg-[#1c1d21] text-[#f7f8f8]"
 	                                        : "border border-black bg-black text-white"
 	                                    }`}
 	                                  >
@@ -2620,14 +2620,14 @@ export function OperatorConsolePage() {
                           }}
                         >
                           <label className="grid gap-2">
-	                            <span className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+	                            <span className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                               Patch ID
                             </span>
                             <input
                               value={patchId}
                               onChange={(event) => setPatchId(event.target.value)}
                               placeholder="paste or select patch ID"
-	                              className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-sm text-black outline-none placeholder:text-[#9a9aa1]"
+	                              className="focus-ring h-9 border border-white/10 bg-[#0e0f11] px-3 font-mono text-sm text-[#f7f8f8] outline-none placeholder:text-[#82858d]"
                             />
                           </label>
                           <Button
@@ -2665,18 +2665,18 @@ export function OperatorConsolePage() {
                         <div className="operator-panel-soft p-4">
                           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
                             <div>
-	                              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+	                              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                                 selected patch identity
                               </p>
                               <h3 className="mt-2 text-lg font-semibold">
                                 Know exactly which patch this receipt belongs to.
                               </h3>
-	                              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6d6d72]">
+	                              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a8f98]">
                                 Pair this hosted identity with SDK status like Device Phase and
                                 Device Patch before rollback.
                               </p>
                             </div>
-	                            <span className="w-fit rounded-full border border-black/10 bg-[#f7f7f8] px-3 py-1.5 text-xs font-medium text-[#6d6d72]">
+	                            <span className="w-fit rounded-full border border-white/10 bg-[#17181b] px-3 py-1.5 text-xs font-medium text-[#8a8f98]">
                               exact patch id
                             </span>
                           </div>
@@ -2693,7 +2693,7 @@ export function OperatorConsolePage() {
 
                         <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
                           <div className="operator-panel-soft p-4">
-	                            <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+	                            <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                               Last signal
                             </p>
                             <p className="mt-3 break-words text-xl font-semibold">
@@ -2704,7 +2704,7 @@ export function OperatorConsolePage() {
                                 {recentClients.map((client) => (
                                   <span
                                     key={client}
-	                                    className="rounded-full border border-black/10 bg-[#f7f7f8] px-3 py-1.5 font-mono text-xs text-[#4d4d52]"
+	                                    className="rounded-full border border-white/10 bg-[#17181b] px-3 py-1.5 font-mono text-xs text-[#b4b8c0]"
                                   >
                                     {client}
                                   </span>
@@ -2722,16 +2722,16 @@ export function OperatorConsolePage() {
 
                     {!selectedReleaseInScope && operatorTab === "rollback" ? (
                       <div className="grid gap-4">
-	                        <div className="overflow-hidden border border-black/15 bg-white">
-	                          <div className="border-b border-black/10 bg-[#f7f7f8] px-4 py-3">
-	                            <h2 className="text-sm font-semibold text-black">
+	                        <div className="overflow-hidden border border-white/15 bg-[#0e0f11]">
+	                          <div className="border-b border-white/10 bg-[#17181b] px-4 py-3">
+	                            <h2 className="text-sm font-semibold text-[#f7f8f8]">
                               Rollback guard
                             </h2>
                           </div>
 	                          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_auto] lg:items-end">
 	                            <div>
 	                              <h3 className="text-base font-semibold">Roll back patch</h3>
-		                              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6d6d72]">
+		                              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a8f98]">
 	                                Type the exact patch ID only after the selected patch identity matches this app workspace.
 	                              </p>
                                   <div className="mt-4 grid gap-2 md:grid-cols-3">
@@ -2759,7 +2759,7 @@ export function OperatorConsolePage() {
                                 placeholder={
                                   rollbackTarget || "select a patch from Patches first"
                                 }
-	                                className="focus-ring mt-4 h-9 w-full border border-black/10 bg-white px-3 font-mono text-sm text-black outline-none placeholder:text-[#9a9aa1]"
+	                                className="focus-ring mt-4 h-9 w-full border border-white/10 bg-[#0e0f11] px-3 font-mono text-sm text-[#f7f8f8] outline-none placeholder:text-[#82858d]"
                               />
                             </div>
                             <Button
@@ -2811,9 +2811,9 @@ export function OperatorConsolePage() {
                               >
                                 Confirm rollback
                               </h2>
-                              <p className="mt-2 text-sm leading-6 text-[#6d6d72]">
+                              <p className="mt-2 text-sm leading-6 text-[#8a8f98]">
                                 This suppresses future patch-check delivery for patch{" "}
-                                <span className="break-all font-mono text-black">
+                                <span className="break-all font-mono text-[#f7f8f8]">
                                   {rollbackTarget}
                                 </span>
                                 {selectedAppInScope ? ` in ${selectedAppName}` : ""}. This
@@ -2823,7 +2823,7 @@ export function OperatorConsolePage() {
                                 <Button
                                   type="button"
                                   variant="outline"
-                                  className="focus-ring h-9 border-black/10 bg-white px-4 text-black hover:bg-[#f3f3f4]"
+                                  className="focus-ring h-9 border-white/10 bg-[#0e0f11] px-4 text-[#f7f8f8] hover:bg-[#17181b]"
                                   onClick={() => setRollbackDialogOpen(false)}
                                 >
                                   Cancel

@@ -46,14 +46,14 @@ export function OperatorTopBar({
         : "";
 
   return (
-    <header className="operator-topbar sticky top-0 z-20 grid min-w-0 gap-3 overflow-hidden border-b border-black/10 px-4 py-3 backdrop-blur-2xl sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,420px)_auto] xl:items-center">
-      <div className="flex min-w-0 items-center gap-3 text-sm text-[#6d6d72]">
+    <header className="operator-topbar sticky top-0 z-20 grid min-w-0 gap-3 overflow-hidden border-b border-white/10 px-4 py-3 backdrop-blur-2xl sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,420px)_auto] xl:items-center">
+      <div className="flex min-w-0 items-center gap-3 text-sm text-[#8a8f98]">
         <span className="size-2 shrink-0 rounded-full bg-black" aria-hidden="true" />
-        <span className="shrink-0 font-medium text-black">Operator console</span>
+        <span className="shrink-0 font-medium text-[#f7f8f8]">Operator console</span>
         {!productMode && selectedAppId ? (
           <>
             <span className="text-[#b1b1b5]">/</span>
-            <span className="max-w-[42vw] truncate text-[#4d4d52]">
+            <span className="max-w-[42vw] truncate text-[#b4b8c0]">
               {selectedAppName}
             </span>
           </>
@@ -61,29 +61,29 @@ export function OperatorTopBar({
         {!productMode && selectedReleaseId ? (
           <>
             <span className="text-[#b1b1b5]">/</span>
-            <span className="font-mono text-[#4d4d52]">{selectedReleaseId}</span>
+            <span className="font-mono text-[#b4b8c0]">{selectedReleaseId}</span>
           </>
         ) : null}
       </div>
 
       {productMode ? (
-        <div className="order-last flex h-9 w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-black/10 bg-[#f6f6f7] px-3 text-sm xl:order-none">
-          <span className="shrink-0 text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
+        <div className="order-last flex h-9 w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#17181b] px-3 text-sm xl:order-none">
+          <span className="shrink-0 text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#82858d]">
             Product section
           </span>
-          <span className="truncate font-medium text-black">
+          <span className="truncate font-medium text-[#f7f8f8]">
             {productSectionLabel}
           </span>
         </div>
       ) : (
-        <label className="order-last flex h-9 w-full min-w-0 items-center gap-3 rounded-lg border border-black/10 bg-[#f6f6f7] px-3 xl:order-none">
-          <Search className="size-4 text-[#77777d]" />
+        <label className="order-last flex h-9 w-full min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-[#17181b] px-3 xl:order-none">
+          <Search className="size-4 text-[#8a8f98]" />
           <span className="sr-only">Search applications</span>
           <input
             value={appSearch}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Search apps"
-            className="w-full bg-transparent text-sm text-black outline-none placeholder:text-[#9a9aa1]"
+            className="w-full bg-transparent text-sm text-[#f7f8f8] outline-none placeholder:text-[#82858d]"
           />
         </label>
       )}
@@ -94,7 +94,7 @@ export function OperatorTopBar({
             role="status"
             aria-live="polite"
             className={`col-span-3 order-first inline-flex items-center gap-1.5 text-xs sm:order-none ${
-              inventoryStale ? "text-black" : "text-[#7a7a80]"
+              inventoryStale ? "text-[#f7f8f8]" : "text-[#8a8f98]"
             }`}
           >
             {inventoryStale ? (
@@ -115,7 +115,7 @@ export function OperatorTopBar({
         <Button
           type="button"
           variant="outline"
-          className="h-9 w-full border-black/10 bg-white text-black hover:bg-[#f3f3f4] sm:w-auto"
+          className="h-9 w-full border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b] sm:w-auto"
           disabled={!canRefresh || inventoryLoading}
           onClick={onRefresh}
         >
@@ -129,7 +129,7 @@ export function OperatorTopBar({
         <Button
           type="button"
           variant="outline"
-          className="h-9 w-full border-black/10 bg-white text-black hover:bg-[#f3f3f4] sm:w-auto"
+          className="h-9 w-full border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b] sm:w-auto"
           onClick={() => onSelectTab("rollback")}
         >
           <RotateCcw className="size-4" />

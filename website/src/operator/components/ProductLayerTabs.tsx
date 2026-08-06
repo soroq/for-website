@@ -70,35 +70,35 @@ export function ProductLayerTabPanel({
       <div className="operator-panel p-4 md:p-5">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
           <div className="min-w-0">
-            <p className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#8d8d93]">
+            <p className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#82858d]">
               {meta.eyebrow}
             </p>
-            <h1 className="mt-2 max-w-3xl text-2xl font-semibold tracking-[-0.025em] text-black md:text-3xl">
+            <h1 className="mt-2 max-w-3xl text-2xl font-semibold tracking-[-0.025em] text-[#f7f8f8] md:text-3xl">
               {meta.title}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#6d6d72]">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a8f98]">
               {meta.body}
             </p>
           </div>
 
-          <div className="grid gap-2 border border-black/10 bg-[#f7f7f8] p-3">
+          <div className="grid gap-2 border border-white/10 bg-[#17181b] p-3">
             <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="uppercase tracking-[0.12em] text-[#8d8d93]">
+              <span className="uppercase tracking-[0.12em] text-[#82858d]">
                 Operator
               </span>
-              <span className="truncate text-[#323236]">{operatorEmail}</span>
+              <span className="truncate text-[#c8ccd2]">{operatorEmail}</span>
             </div>
             <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="uppercase tracking-[0.12em] text-[#8d8d93]">
+              <span className="uppercase tracking-[0.12em] text-[#82858d]">
                 Product snapshot
               </span>
-              <span className="text-[#323236]">{productState.status}</span>
+              <span className="text-[#c8ccd2]">{productState.status}</span>
             </div>
             <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="uppercase tracking-[0.12em] text-[#8d8d93]">
+              <span className="uppercase tracking-[0.12em] text-[#82858d]">
                 Access
               </span>
-              <span className="text-[#323236]">{signedIn ? "signed in" : "required"}</span>
+              <span className="text-[#c8ccd2]">{signedIn ? "signed in" : "required"}</span>
             </div>
           </div>
         </div>
@@ -140,12 +140,12 @@ function ProductSnapshotStatus({
           : "Sign in to load product readiness";
 
   return (
-    <div className="border border-black/10 bg-[#f7f7f8] p-3 text-sm text-[#6d6d72]">
+    <div className="border border-white/10 bg-[#17181b] p-3 text-sm text-[#8a8f98]">
       <div className="flex min-w-0 items-center gap-3">
         {state.status === "error" ? (
-          <AlertCircle className="size-4 shrink-0 text-black" />
+          <AlertCircle className="size-4 shrink-0 text-[#f7f8f8]" />
         ) : (
-          <ShieldCheck className="size-4 shrink-0 text-black" />
+          <ShieldCheck className="size-4 shrink-0 text-[#f7f8f8]" />
         )}
         <span className="break-words">{state.error || label}</span>
       </div>
@@ -171,7 +171,7 @@ function OwnershipPanel({
       />
       <StatGrid rows={rows} />
       <div className="operator-table-shell overflow-hidden">
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-black/10 bg-[#f7f7f8] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-white/10 bg-[#17181b] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
           <span>App</span>
           <span>Owner</span>
         </div>
@@ -179,17 +179,17 @@ function OwnershipPanel({
           sampledApps.map((app) => (
             <div
               key={formatRecordText(app, ["id", "app_id"], JSON.stringify(app))}
-              className="grid gap-3 border-b border-black/10 px-4 py-3.5 last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+              className="grid gap-3 border-b border-white/10 px-4 py-3.5 last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">
                   {formatRecordText(app, ["name", "display_name"], "Soroq app")}
                 </p>
-                <p className="mt-1 break-all font-mono text-[0.68rem] text-[#8d8d93]">
+                <p className="mt-1 break-all font-mono text-[0.68rem] text-[#82858d]">
                   {formatRecordText(app, ["id", "app_id"], "missing id")}
                 </p>
               </div>
-              <p className="break-all font-mono text-xs text-[#6d6d72]">
+              <p className="break-all font-mono text-xs text-[#8a8f98]">
                 {formatRecordText(app, ["owner_email"], "legacy unowned")}
               </p>
             </div>
@@ -214,10 +214,10 @@ function DeveloperExperiencePanel({ commands }: { commands: ProductCommandRow[] 
         {commands.map((row) => (
           <div
             key={row.command}
-            className="grid gap-3 border border-black/10 bg-[#f7f7f8] p-3 md:grid-cols-[180px_minmax(0,1fr)] md:items-center"
+            className="grid gap-3 border border-white/10 bg-[#17181b] p-3 md:grid-cols-[180px_minmax(0,1fr)] md:items-center"
           >
-            <p className="text-sm font-semibold text-black">{row.label}</p>
-            <code className="min-w-0 break-all border border-black/10 bg-[#f4f4f5] px-3 py-2 font-mono text-xs text-black">
+            <p className="text-sm font-semibold text-[#f7f8f8]">{row.label}</p>
+            <code className="min-w-0 break-all border border-white/10 bg-[#17181b] px-3 py-2 font-mono text-xs text-[#f7f8f8]">
               {row.command}
             </code>
           </div>
@@ -247,9 +247,9 @@ function BillingPanel({ rows }: { rows: ConsoleStat[] }) {
           ["Team", "Designed for owner-scoped apps, operator workflows, and rollback review."],
           ["Enterprise", "Reserved for private compatibility review and deployment conversations."],
         ].map(([title, body]) => (
-          <div key={title} className="border border-black/10 bg-[#f7f7f8] p-4">
-            <p className="text-sm font-semibold text-black">{title}</p>
-            <p className="mt-2 text-sm leading-6 text-[#6d6d72]">{body}</p>
+          <div key={title} className="border border-white/10 bg-[#17181b] p-4">
+            <p className="text-sm font-semibold text-[#f7f8f8]">{title}</p>
+            <p className="mt-2 text-sm leading-6 text-[#8a8f98]">{body}</p>
           </div>
         ))}
       </div>
@@ -273,8 +273,8 @@ function TrustPanel({
       />
       <StatGrid rows={rows} />
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="border border-black/10 bg-[#f7f7f8] p-4">
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+        <div className="border border-white/10 bg-[#17181b] p-4">
+          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
             Trust checks
           </p>
           <div className="mt-4 grid gap-3">
@@ -284,25 +284,25 @@ function TrustPanel({
               "Owner-scoped routes protect app/release/patch reads",
               "Rollback requires an explicit patch target",
             ].map((item) => (
-              <div key={item} className="flex min-w-0 items-start gap-3 text-sm text-[#6d6d72]">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-black" />
+              <div key={item} className="flex min-w-0 items-start gap-3 text-sm text-[#8a8f98]">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#f7f8f8]" />
                 <span className="break-words">{item}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="border border-black/10 bg-[#f7f7f8] p-4">
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+        <div className="border border-white/10 bg-[#17181b] p-4">
+          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
             Domain map
           </p>
           <div className="mt-4 grid gap-2">
             {domainRows.map((row) => (
               <div
                 key={row.label}
-                className="grid gap-2 rounded-xl border border-black/10 bg-[#f7f7f8] px-3 py-2.5 md:grid-cols-[120px_minmax(0,1fr)]"
+                className="grid gap-2 rounded-xl border border-white/10 bg-[#17181b] px-3 py-2.5 md:grid-cols-[120px_minmax(0,1fr)]"
               >
-                <span className="text-xs font-semibold text-[#6d6d72]">{row.label}</span>
-                <span className="break-all font-mono text-xs text-[#323236]">{row.value}</span>
+                <span className="text-xs font-semibold text-[#8a8f98]">{row.label}</span>
+                <span className="break-all font-mono text-xs text-[#c8ccd2]">{row.value}</span>
               </div>
             ))}
           </div>
@@ -323,11 +323,11 @@ function PanelHeader({
 }) {
   return (
     <div className="operator-panel-soft p-4">
-      <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+      <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
         {eyebrow}
       </p>
       <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em]">{title}</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6d6d72]">{body}</p>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a8f98]">{body}</p>
     </div>
   );
 }
@@ -337,11 +337,11 @@ function StatGrid({ rows }: { rows: ConsoleStat[] }) {
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {rows.map((row) => (
         <div key={row.label} className="operator-panel-soft p-4">
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
             {row.label}
           </p>
-          <p className="mt-2 break-words text-2xl font-semibold text-black">{row.value}</p>
-          <p className="mt-2 text-xs leading-5 text-[#6d6d72]">{row.helper}</p>
+          <p className="mt-2 break-words text-2xl font-semibold text-[#f7f8f8]">{row.value}</p>
+          <p className="mt-2 text-xs leading-5 text-[#8a8f98]">{row.helper}</p>
         </div>
       ))}
     </div>
@@ -352,20 +352,20 @@ function ProductLink({ href, label }: { href: string; label: string }) {
   return (
     <a
       href={href}
-      className="focus-ring flex items-center justify-between gap-3 border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#f3f3f4]"
+      className="focus-ring flex items-center justify-between gap-3 border border-white/10 bg-[#0e0f11] px-4 py-3 text-sm font-semibold text-[#f7f8f8] transition hover:bg-[#17181b]"
     >
       <span>{label}</span>
-      <ExternalLink className="size-4 text-[#6d6d72]" />
+      <ExternalLink className="size-4 text-[#8a8f98]" />
     </a>
   );
 }
 
 function ProductEmpty({ title, body }: { title: string; body: string }) {
   return (
-    <div className="border border-dashed border-black/15 bg-[#f8f8f9] p-4">
-      <FileCode2 className="mb-3 size-5 text-[#8d8d93]" />
-      <p className="text-sm font-semibold text-black">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-[#6d6d72]">{body}</p>
+    <div className="border border-dashed border-white/15 bg-[#17181b] p-4">
+      <FileCode2 className="mb-3 size-5 text-[#82858d]" />
+      <p className="text-sm font-semibold text-[#f7f8f8]">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-[#8a8f98]">{body}</p>
     </div>
   );
 }

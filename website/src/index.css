@@ -1,9 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap");
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap");
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: "Space Grotesk", "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+  --font-sans: "Satoshi", "Inter", "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "SFMono-Regular", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-page: var(--page);
@@ -62,18 +63,18 @@
   --destructive: #bc4b42;
   --border: rgba(44, 42, 41, 0.16);
   --input: rgba(44, 42, 41, 0.2);
-  --ring: #ff8b5d;
-  --signal: #27b67a;
-  --coral: #ff7f68;
-  --coral-soft: #ffd9d1;
-  --coral-foreground: #2c1b17;
-  --violet: #a98bef;
-  --violet-soft: #dcd8ff;
-  --success: #bff0c8;
-  --warning: #ffd98f;
-  --warning-foreground: #2c2a29;
-  --blueprint: #96a6ff;
-  --electric: #ff7f68;
+  --ring: #e54b4b;
+  --signal: #e54b4b;         /* brand accent — was green #27b67a, now strawberry */
+  --coral: #e54b4b;          /* strawberry */
+  --coral-soft: #2a1614;     /* dark strawberry tint */
+  --coral-foreground: #ffffff;
+  --violet: #8a8f98;         /* no purple — cool grey */
+  --violet-soft: #17181b;
+  --success: #e54b4b;
+  --warning: #e54b4b;
+  --warning-foreground: #ffffff;
+  --blueprint: #8a8f98;
+  --electric: #e54b4b;       /* strawberry */
 }
 
 @layer base {
@@ -120,24 +121,24 @@
   }
 
   .operator-backdrop {
-    --op-bg: #f7f7f8;
-    --op-sidebar: #ffffff;
-    --op-topbar: rgba(255, 255, 255, 0.94);
-    --op-panel: #ffffff;
-    --op-panel-muted: #ffffff;
-    --op-chip: #f6f6f7;
-    --op-chip-strong: #f0f0f2;
-    --op-line: rgba(14, 14, 15, 0.12);
-    --op-line-soft: rgba(14, 14, 15, 0.09);
-    --op-text: #0f0f10;
-    --op-muted: #69696f;
-    --op-dim: #9a9aa1;
-    --op-accent: #0f0f10;
-    --op-accent-soft: #eeeeef;
-    --op-danger: #1f1f21;
-    --op-warning: #505056;
+    --op-bg: #08090a;
+    --op-sidebar: #0b0c0d;
+    --op-topbar: rgba(11, 12, 13, 0.8);
+    --op-panel: #0e0f11;
+    --op-panel-muted: #0c0d0f;
+    --op-chip: #17181b;
+    --op-chip-strong: #1c1d21;
+    --op-line: rgba(255, 255, 255, 0.1);
+    --op-line-soft: rgba(255, 255, 255, 0.06);
+    --op-text: #f7f8f8;
+    --op-muted: #8a8f98;
+    --op-dim: #62666d;
+    --op-accent: #f7f8f8;
+    --op-accent-soft: #17181b;
+    --op-danger: #e5484d;
+    --op-warning: #e54b4b;
     --op-radius: 8px;
-    --op-shadow: 0 1px 2px rgba(15, 15, 16, 0.035);
+    --op-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     background: var(--op-bg);
     color: var(--op-text);
   }
@@ -189,7 +190,7 @@
   .operator-table-shell {
     border: 1px solid var(--op-line-soft);
     border-radius: var(--op-radius);
-    background: #ffffff;
+    background: #0e0f11;
   }
 
   .operator-table-row {
@@ -200,7 +201,7 @@
   }
 
   .operator-table-row:hover:not(:disabled) {
-    background: #f7f7f8;
+    background: #17181b;
   }
 
   .operator-summary-tile {
@@ -243,16 +244,16 @@
   }
 
   .operator-summary-tile:hover {
-    border-color: rgba(15, 15, 16, 0.22);
-    background: #f8f8f9;
+    border-color: rgba(255,255,255,0.2);
+    background: #17181b;
   }
 
   .operator-hero {
-    background: #ffffff;
+    background: #0e0f11;
   }
 
   .operator-focus-line {
-    background: linear-gradient(90deg, transparent, rgba(15, 15, 16, 0.62), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
   }
 
   .operator-backdrop input,
