@@ -69,13 +69,13 @@ export function OperatorOverviewPanel({
         <div className="operator-panel-soft overflow-hidden p-4">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
-              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                 Release cockpit
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em]">
                 {consoleHealthLabel}
               </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6d6d72]">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a8f98]">
                 One operator view for the selected app, release, runtime, channel,
                 health, and rollback state.
               </p>
@@ -85,7 +85,7 @@ export function OperatorOverviewPanel({
             </span>
           </div>
 
-          <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#e5e5e7]">
+          <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#23252a]">
             <div
               className="h-full rounded-full bg-black"
               style={{ width: `${consoleHealthScore}%` }}
@@ -96,15 +96,15 @@ export function OperatorOverviewPanel({
             {operatorQueueRows.map((row) => (
               <div
                 key={row.label}
-                className="min-w-0 border border-black/10 bg-[#f7f7f8] px-3 py-3"
+                className="min-w-0 border border-white/10 bg-[#17181b] px-3 py-3"
               >
-                <p className="text-[0.62rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
+                <p className="text-[0.62rem] font-medium uppercase tracking-[0.13em] text-[#82858d]">
                   {row.label}
                 </p>
-                <p className="mt-1 truncate text-sm font-semibold text-black">
+                <p className="mt-1 truncate text-sm font-semibold text-[#f7f8f8]">
                   {row.value}
                 </p>
-                <p className="mt-1 truncate text-xs text-[#6d6d72]">{row.detail}</p>
+                <p className="mt-1 truncate text-xs text-[#8a8f98]">{row.detail}</p>
               </div>
             ))}
           </div>
@@ -113,23 +113,23 @@ export function OperatorOverviewPanel({
         <div className="operator-panel-soft p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                 Patch state graph
               </p>
               <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em]">
                 Visible patches by serving state
               </h2>
             </div>
-            <BarChart3 className="size-5 text-black" />
+            <BarChart3 className="size-5 text-[#f7f8f8]" />
           </div>
           <div className="mt-5 grid gap-4">
             {patchStateBars.map((bar) => (
               <div key={bar.label}>
                 <div className="mb-1.5 flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-black">{bar.label}</span>
-                  <span className="font-mono text-xs text-[#6d6d72]">{bar.value}</span>
+                  <span className="text-sm font-medium text-[#f7f8f8]">{bar.label}</span>
+                  <span className="font-mono text-xs text-[#8a8f98]">{bar.value}</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#e5e5e7]">
+                <div className="h-2 overflow-hidden rounded-full bg-[#23252a]">
                   <div
                     className={`h-full rounded-full ${bar.tone}`}
                     style={{
@@ -140,7 +140,7 @@ export function OperatorOverviewPanel({
                     }}
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-[#7a7a80]">{bar.helper}</p>
+                <p className="mt-1.5 text-xs text-[#8a8f98]">{bar.helper}</p>
               </div>
             ))}
           </div>
@@ -151,14 +151,14 @@ export function OperatorOverviewPanel({
         <div className="operator-panel-soft p-4">
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
-              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                 Release lane map
               </p>
               <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em]">
                 Which base releases are carrying patches.
               </h2>
             </div>
-            <span className="w-fit rounded-full border border-black/10 bg-[#f7f7f8] px-3 py-1.5 text-xs text-[#6d6d72]">
+            <span className="w-fit rounded-full border border-white/10 bg-[#17181b] px-3 py-1.5 text-xs text-[#8a8f98]">
               {releaseCount} releases
             </span>
           </div>
@@ -176,23 +176,23 @@ export function OperatorOverviewPanel({
                     type="button"
                     disabled={!lane.id}
                     onClick={() => onSelectRelease(lane.id)}
-                    className="operator-table-row grid w-full gap-3 border border-black/10 bg-white p-3 text-left md:grid-cols-[minmax(0,1fr)_170px]"
+                    className="operator-table-row grid w-full gap-3 border border-white/10 bg-[#0e0f11] p-3 text-left md:grid-cols-[minmax(0,1fr)_170px]"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{lane.label}</p>
-                      <p className="mt-1 truncate font-mono text-xs text-[#7a7a80]">
+                      <p className="mt-1 truncate font-mono text-xs text-[#8a8f98]">
                         {lane.id || "missing release id"}
                       </p>
-                      <p className="mt-1 text-xs text-[#8d8d93]">
+                      <p className="mt-1 text-xs text-[#82858d]">
                         runtime {lane.runtime || "unknown"}
                       </p>
                     </div>
                     <div>
-                      <div className="mb-1.5 flex items-center justify-between text-xs text-[#6d6d72]">
+                      <div className="mb-1.5 flex items-center justify-between text-xs text-[#8a8f98]">
                         <span>{lane.active} active</span>
                         <span>{lane.rolledBack} rolled back</span>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-[#e5e5e7]">
+                      <div className="h-2 overflow-hidden rounded-full bg-[#23252a]">
                         <div
                           className="h-full rounded-full bg-black"
                           style={{
@@ -219,21 +219,21 @@ export function OperatorOverviewPanel({
         <div className="operator-panel-soft p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#82858d]">
                 Operator queue
               </p>
               <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em]">
                 Next safe console actions.
               </h2>
             </div>
-            <ShieldCheck className="size-5 text-black" />
+            <ShieldCheck className="size-5 text-[#f7f8f8]" />
           </div>
 
           <div className="mt-4 grid gap-2">
             <Button
               type="button"
               variant="outline"
-              className="h-9 justify-start border-black/10 bg-white text-black hover:bg-[#f3f3f4]"
+              className="h-9 justify-start border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b]"
               disabled={!canRefresh || inventoryLoading}
               onClick={onRefresh}
             >
@@ -247,7 +247,7 @@ export function OperatorOverviewPanel({
             <Button
               type="button"
               variant="outline"
-              className="h-9 justify-start border-black/10 bg-white text-black hover:bg-[#f3f3f4]"
+              className="h-9 justify-start border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b]"
               disabled={!latestPatchId}
               onClick={() => latestPatchId && onSelectPatch(latestPatchId)}
             >
@@ -257,7 +257,7 @@ export function OperatorOverviewPanel({
             <Button
               type="button"
               variant="outline"
-              className="h-9 justify-start border-black/10 bg-white text-black hover:bg-[#f3f3f4]"
+              className="h-9 justify-start border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b]"
               disabled={!selectedPatchId.trim()}
               onClick={() => onSelectTab("rollback")}
             >
@@ -266,8 +266,8 @@ export function OperatorOverviewPanel({
             </Button>
           </div>
 
-          <div className="mt-4 border border-black/10 bg-[#f7f7f8] p-3">
-            <p className="text-[0.62rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
+          <div className="mt-4 border border-white/10 bg-[#17181b] p-3">
+            <p className="text-[0.62rem] font-medium uppercase tracking-[0.13em] text-[#82858d]">
               Patch mix
             </p>
             {patchKindRows.length ? (
@@ -275,14 +275,14 @@ export function OperatorOverviewPanel({
                 {patchKindRows.map(([kind, count]) => (
                   <span
                     key={kind}
-                    className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs text-[#4d4d52]"
+                    className="rounded-full border border-white/10 bg-[#0e0f11] px-3 py-1.5 text-xs text-[#b4b8c0]"
                   >
                     {kind}: {count}
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-[#6d6d72]">
+              <p className="mt-2 text-sm text-[#8a8f98]">
                 Patch type distribution appears after inventory loads.
               </p>
             )}

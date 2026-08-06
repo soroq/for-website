@@ -25,12 +25,12 @@ export function OperatorSidebar({
   onSignOut: () => void;
 }) {
   return (
-    <aside className="operator-sidebar flex min-w-0 flex-col overflow-hidden border-b border-black/10 px-4 py-4 backdrop-blur-xl lg:sticky lg:top-0 lg:h-screen lg:border-b-0">
+    <aside className="operator-sidebar flex min-w-0 flex-col overflow-hidden border-b border-white/10 px-4 py-4 backdrop-blur-xl lg:sticky lg:top-0 lg:h-screen lg:border-b-0">
       <a href="/" className="flex items-center gap-3">
         <SoroqMark className="size-8" textClassName="text-xs" />
         <div>
           <p className="text-sm font-semibold tracking-tight">Soroq</p>
-          <p className="text-xs text-[#7a7a80]">Control plane</p>
+          <p className="text-xs text-[#8a8f98]">Control plane</p>
         </div>
       </a>
 
@@ -47,7 +47,7 @@ export function OperatorSidebar({
               className={`focus-ring flex shrink-0 items-center gap-3 border px-3 py-2.5 text-left text-sm font-medium transition lg:shrink ${
                 active
                   ? "border-black bg-black text-white shadow-sm"
-                  : "border-transparent text-[#5f6066] hover:border-black/10 hover:bg-[#f4f4f5] hover:text-black"
+                  : "border-transparent text-[#9aa0a8] hover:border-white/10 hover:bg-[#17181b] hover:text-[#f7f8f8]"
               }`}
               onClick={() => onSelectTab(key)}
             >
@@ -60,14 +60,14 @@ export function OperatorSidebar({
 
       <div className="operator-panel-soft mt-5 hidden p-3 lg:mt-auto lg:block">
         <div className="flex items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full border border-black/10 bg-black text-xs font-semibold text-white">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full border border-white/10 bg-black text-xs font-semibold text-white">
             {(operatorEmail || "SO").slice(0, 2).toUpperCase()}
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">
               {operatorState.data?.email ? "Verified operator" : "Operator"}
             </p>
-            <p className="truncate text-xs text-[#7a7a80]">{operatorEmail}</p>
+            <p className="truncate text-xs text-[#8a8f98]">{operatorEmail}</p>
           </div>
         </div>
         <div className="mt-3 flex gap-2">
@@ -75,7 +75,7 @@ export function OperatorSidebar({
             <Button
               type="button"
               variant="outline"
-              className="h-9 flex-1 rounded-xl border-black/10 bg-white text-black hover:bg-[#f4f4f5]"
+              className="h-9 flex-1 rounded-xl border-white/10 bg-[#0e0f11] text-[#f7f8f8] hover:bg-[#17181b]"
               onClick={onSignOut}
             >
               <LogOut className="size-4" />

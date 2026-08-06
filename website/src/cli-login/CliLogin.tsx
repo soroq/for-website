@@ -183,20 +183,20 @@ export function CliLogin() {
     user && params.emailHint && !sameEmail(user.email, params.emailHint) ? true : false;
 
   return (
-    <main className="min-h-screen w-full surface-grid flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card text-card-foreground shadow-card p-8">
+    <main className="min-h-screen w-full bg-[#08090a] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0e0f11] text-[#f7f8f8] shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] p-8">
         <div className="flex items-center gap-3">
           <img src="/favicon.svg" alt="Soroq" className="h-8 w-8" />
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Soroq CLI login</h1>
-            <p className="text-sm text-muted-foreground">Authorize the command-line tool</p>
+            <p className="text-sm text-[#8a8f98]">Authorize the command-line tool</p>
           </div>
         </div>
 
         {!redirect ? (
           <div className="mt-8 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
             <p className="font-medium text-destructive">This login link is invalid.</p>
-            <p className="mt-1 text-muted-foreground">
+            <p className="mt-1 text-[#8a8f98]">
               The CLI must send a local <code className="font-mono">redirect_uri</code> pointing at{" "}
               <code className="font-mono">http://127.0.0.1</code> or{" "}
               <code className="font-mono">http://localhost</code>. Re-run{" "}
@@ -205,39 +205,39 @@ export function CliLogin() {
           </div>
         ) : (
           <>
-            <div className="mt-6 rounded-xl border border-border bg-secondary/50 p-4 text-sm">
-              <p className="text-muted-foreground">You are authorizing</p>
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm">
+              <p className="text-[#8a8f98]">You are authorizing</p>
               <p className="mt-1 font-medium">The Soroq CLI</p>
-              <dl className="mt-3 space-y-1 text-xs text-muted-foreground">
+              <dl className="mt-3 space-y-1 text-xs text-[#8a8f98]">
                 <div className="flex justify-between gap-4">
                   <dt>API environment</dt>
-                  <dd className="font-mono text-foreground truncate">{apiLabel}</dd>
+                  <dd className="font-mono text-[#f7f8f8] truncate">{apiLabel}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt>Returns to</dt>
-                  <dd className="font-mono text-foreground truncate">{redirect.origin}</dd>
+                  <dd className="font-mono text-[#f7f8f8] truncate">{redirect.origin}</dd>
                 </div>
               </dl>
             </div>
 
             {phase === "loading" ? (
-              <p className="mt-6 text-sm text-muted-foreground">Loading sign-in…</p>
+              <p className="mt-6 text-sm text-[#8a8f98]">Loading sign-in…</p>
             ) : !user ? (
               <div className="mt-6">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-[#8a8f98]">
                   Sign in with your Soroq operator account to continue.
                   {params.emailHint ? (
                     <>
                       {" "}
                       The CLI requested{" "}
-                      <span className="font-medium text-foreground">{params.emailHint}</span>.
+                      <span className="font-medium text-[#f7f8f8]">{params.emailHint}</span>.
                     </>
                   ) : null}
                 </p>
                 <button
                   type="button"
                   onClick={handleSignIn}
-                  className="mt-4 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground focus-ring hover:opacity-90"
+                  className="mt-4 w-full rounded-lg bg-[#e54b4b] px-4 py-2.5 text-sm font-medium text-white focus-ring hover:opacity-90"
                 >
                   Continue with Google
                 </button>
@@ -259,7 +259,7 @@ export function CliLogin() {
                   </div>
                 ) : null}
 
-                <p className="text-sm text-muted-foreground">Continue as</p>
+                <p className="text-sm text-[#8a8f98]">Continue as</p>
                 <p className="mt-0.5 font-medium">{user.email}</p>
 
                 <div className="mt-5 flex gap-3">
@@ -267,7 +267,7 @@ export function CliLogin() {
                     type="button"
                     onClick={handleContinue}
                     disabled={phase === "authorizing" || phase === "redirecting"}
-                    className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground focus-ring hover:opacity-90 disabled:opacity-60"
+                    className="flex-1 rounded-lg bg-[#e54b4b] px-4 py-2.5 text-sm font-medium text-white focus-ring hover:opacity-90 disabled:opacity-60"
                   >
                     {phase === "authorizing" || phase === "redirecting" ? "Authorizing…" : "Continue"}
                   </button>
@@ -275,7 +275,7 @@ export function CliLogin() {
                     type="button"
                     onClick={handleCancel}
                     disabled={phase === "authorizing" || phase === "redirecting"}
-                    className="flex-1 rounded-lg border border-border bg-transparent px-4 py-2.5 text-sm font-medium focus-ring hover:bg-secondary disabled:opacity-60"
+                    className="flex-1 rounded-lg border border-white/10 bg-transparent px-4 py-2.5 text-sm font-medium focus-ring hover:bg-white/[0.05] disabled:opacity-60"
                   >
                     Cancel
                   </button>
@@ -285,7 +285,7 @@ export function CliLogin() {
                   <button
                     type="button"
                     onClick={handleSwitchAccount}
-                    className="mt-3 text-xs text-muted-foreground underline underline-offset-2"
+                    className="mt-3 text-xs text-[#8a8f98] underline underline-offset-2"
                   >
                     Use a different account
                   </button>
