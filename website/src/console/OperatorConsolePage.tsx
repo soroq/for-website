@@ -1763,7 +1763,7 @@ export function OperatorConsolePage() {
     }
 
     return (
-      <main className="operator-backdrop min-h-screen overflow-x-hidden text-[#111111]">
+      <main className="operator-backdrop min-h-screen overflow-x-clip text-[#111111]">
         <section className="relative z-10 grid min-h-screen min-w-0 grid-cols-[minmax(0,1fr)] content-start lg:grid-cols-[260px_minmax(0,1fr)] lg:content-stretch">
           <ConsoleSidebar
             apps={appSummaries}
@@ -1780,7 +1780,7 @@ export function OperatorConsolePage() {
             onSignOut={() => void signOut()}
           />
 
-          <div className="min-w-0 overflow-x-hidden">
+          <div className="min-w-0 overflow-x-clip">
             <ConsoleTopBar
               crumbs={crumbs}
               apiState={healthState.status}
