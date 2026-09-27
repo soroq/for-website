@@ -34,18 +34,16 @@ export function OperatorSummaryTile({
 
 export function ConsoleMiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 border border-black/10 bg-[#f7f7f8] px-3 py-2.5">
-      <p className="text-[0.64rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
-        {label}
-      </p>
-      <p className="mt-1 truncate text-sm font-semibold text-black">{value}</p>
+    <div className="min-w-0 rounded-md border border-black/[0.08] bg-[#fafafa] px-3 py-2.5">
+      <p className="text-xs text-[#6d6d72]">{label}</p>
+      <p className="mt-0.5 truncate text-sm font-semibold text-black" title={value}>{value}</p>
     </div>
   );
 }
 
 export function ConsoleEmpty({ title, body }: { title: string; body: string }) {
   return (
-    <div className="border border-dashed border-black/15 bg-[#f8f8f9] p-4">
+    <div className="rounded-lg border border-black/10 bg-white p-5">
       <p className="text-sm font-semibold text-black">{title}</p>
       <p className="mt-2 text-sm leading-6 text-[#6d6d72]">{body}</p>
     </div>
@@ -62,11 +60,9 @@ export function OperatorMetric({
   helper: string;
 }) {
   return (
-    <div className="operator-panel-soft p-4">
-      <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
-        {label}
-      </p>
-      <p className="mt-2 break-words text-xl font-semibold text-black">{value}</p>
+    <div className="rounded-lg border border-black/10 bg-white p-4">
+      <p className="text-xs text-[#6d6d72]">{label}</p>
+      <p className="mt-1 break-words text-xl font-semibold tabular-nums text-black">{value}</p>
       <p className="mt-2 text-xs leading-5 text-[#6d6d72]">{helper}</p>
     </div>
   );
@@ -127,11 +123,11 @@ export function StateNotice({
 }) {
   const toneClass =
     tone === "error"
-      ? "border-black/20 bg-[#efeff0] text-black"
-      : "border-black/15 bg-[#f3f3f4] text-black";
+      ? "border-[#c0392b]/30 bg-[#fdf3f2] text-[#8f2a20]"
+      : "border-[#b7791f]/30 bg-[#fdf8ee] text-[#7a5212]";
 
   return (
-    <div className={`border px-3 py-2 text-xs leading-5 ${toneClass}`}>
+    <div className={`rounded-md border px-3 py-2 text-sm leading-5 ${toneClass}`}>
       <div className="flex min-w-0 gap-2.5">
         <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
         <p className="min-w-0 break-words">{message}</p>
@@ -142,11 +138,9 @@ export function StateNotice({
 
 export function JsonPreview({ data, empty }: { data: JsonRecord | null; empty: string }) {
   return (
-    <div className="overflow-hidden border border-black/10 bg-white text-black">
-      <div className="flex items-center justify-between gap-4 border-b border-black/10 bg-[#f7f7f8] px-4 py-3">
-        <span className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
-          raw JSON
-        </span>
+    <div className="overflow-hidden rounded-lg border border-black/10 bg-white text-black">
+      <div className="flex items-center justify-between gap-4 border-b border-black/10 px-4 py-2.5">
+        <span className="text-xs text-[#6d6d72]">Server response</span>
         <FileCode2 className="size-4 text-[#6d6d72]" />
       </div>
       <pre className="max-h-72 overflow-auto p-4 text-xs leading-5 text-[#323236]">

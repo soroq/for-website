@@ -18,18 +18,18 @@ type Props = {
   onOpenRollback: (patchId: string) => void;
 };
 
-type Health = "failing" | "healthy" | "silent" | "rolledBack";
+export type Health = "failing" | "healthy" | "silent" | "rolledBack";
 type Filter = "all" | "failing" | "silent" | "rolledBack";
 
 // One palette for health, used by the timeline, the table and the details panel alike.
-const HEALTH: Record<Health, { label: string; block: string; dot: string; text: string }> = {
+export const HEALTH: Record<Health, { label: string; block: string; dot: string; text: string }> = {
   failing: { label: "Failing on devices", block: "bg-[#c0392b] text-white border-[#c0392b]", dot: "bg-[#c0392b]", text: "text-[#8f2a20]" },
   healthy: { label: "Healthy", block: "bg-[#2f7d4f] text-white border-[#2f7d4f]", dot: "bg-[#2f7d4f]", text: "text-[#23603c]" },
   silent: { label: "No reports yet", block: "bg-[#f1f1f3] text-[#6d6d72] border-[#dcdce0]", dot: "bg-[#c4c4ca]", text: "text-[#6d6d72]" },
   rolledBack: { label: "Rolled back", block: "bg-white text-[#9a9aa1] border-[#c4c4ca] border-dashed line-through", dot: "bg-white border border-[#9a9aa1]", text: "text-[#6d6d72]" },
 };
 
-const REASON_EXPLAINED: Record<string, string> = {
+export const REASON_EXPLAINED: Record<string, string> = {
   crash_before_first_frame: "The patched app died before it could show anything. Those devices went back to their last good code on their own.",
   crash_after_launch: "The patched app ran, then crashed. The patch stays active on those devices (Android 11+ reports this).",
   anr_after_launch: "The patched app ran, then stopped responding. The patch stays active on those devices.",
@@ -42,24 +42,24 @@ const REASON_EXPLAINED: Record<string, string> = {
   unspecified: "Reported by an older app build that does not send a reason.",
 };
 
-function healthOf(row: PatchDeliveryRow): Health {
+export function healthOf(row: PatchDeliveryRow): Health {
   if (row.rolledBack) return "rolledBack";
   if (row.failedDevices > 0) return "failing";
   if (!row.observed || row.successfulDevices + row.failedDevices === 0) return "silent";
   return "healthy";
 }
 
-function rate(ok: number, failed: number): number | null {
+export function rate(ok: number, failed: number): number | null {
   return ok + failed ? ok / (ok + failed) : null;
 }
 
-function pct(value: number | null): string {
+export function pct(value: number | null): string {
   if (value === null) return "—";
   const p = value * 100;
   return `${Number.isInteger(p) ? p : p.toFixed(1)}%`;
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+export function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -154,13 +154,14 @@ export function OperatorAnalyticsPage({ apps, selectedAppId, onSelectApp, state,
       {/* Header: what this is, which app, how fresh. */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-black">Analytics</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-black">Device health</h1>
           <p className="mt-1 max-w-xl text-sm leading-6 text-[#6d6d72]">
             How your updates are doing on real devices: which patches booted, which failed and why. Counted per device;
             nothing about your users is collected.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {selectedAppId ? null : (
           <label className="relative w-full sm:w-auto">
             <span className="sr-only">App</span>
             <select
@@ -177,6 +178,7 @@ export function OperatorAnalyticsPage({ apps, selectedAppId, onSelectApp, state,
             </select>
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#8d8d93]">▾</span>
           </label>
+          )}
           <Button type="button" onClick={onRefresh} disabled={!canLoad || loading || !selectedAppId} className="h-9 bg-black text-white hover:bg-[#2b2b2d]">
             {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
             Refresh

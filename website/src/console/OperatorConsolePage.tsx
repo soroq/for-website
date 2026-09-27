@@ -1,24 +1,18 @@
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import {
   Activity,
-  AlertCircle,
   BarChart3,
-  ChevronRight,
   CircleGauge,
   Download,
   FileArchive,
   FileCode2,
-  Home,
   ListChecks,
   Loader2,
   LockKeyhole,
   LogIn,
-  PackageCheck,
   RadioTower,
   RefreshCcw,
   RotateCcw,
-  Search,
-  Server,
   Settings as SettingsIcon,
   TerminalSquare,
 } from "lucide-react";
@@ -30,16 +24,24 @@ import {
   ConsoleMiniStat,
   JsonPreview,
   OperatorMetric,
-  OperatorSummaryTile,
   StateNotice,
 } from "@/operator/components/ConsolePrimitives";
 import {
-  OperatorCommandCenter,
-  type ScopeFact,
-} from "@/operator/components/OperatorCommandCenter";
-import { OperatorOverviewPanel } from "@/operator/components/OperatorOverviewPanel";
-import { OperatorSidebar } from "@/operator/components/OperatorSidebar";
-import { OperatorTopBar } from "@/operator/components/OperatorTopBar";
+  AppHeader,
+  AppOverview,
+  AppsHome,
+  ConsoleSidebar,
+  ConsoleTopBar,
+  PatchHealthPanel,
+  PatchesTable,
+  digestApp,
+  platformLabel,
+  type AppHealth,
+  type AppSummary,
+  type Crumb,
+  type PatchListRow,
+  type ReleaseDigest,
+} from "@/operator/components/ConsoleShell";
 import {
   ProductLayerTabPanel,
   isProductLayerTab,
@@ -49,9 +51,7 @@ import { buildAnalyticsView } from "@/operator/analytics";
 import { OperatorAnalyticsPage } from "@/operator/components/OperatorAnalyticsPage";
 import {
   apiList,
-  collectRecentClients,
   formatMetric,
-  formatReceivedAt,
   formatRecordText,
   getRecordValue,
   mergeRecords,
@@ -83,14 +83,18 @@ const firebaseCompatScripts = [
 
 const scriptLoads = new Map<string, Promise<void>>();
 
-function hasAuthProvider(providerConfig: string | undefined, provider: "google" | "github") {
-  const providers = (providerConfig || "google")
-    .split(/[,\s]+/)
-    .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean);
-
-  return providers.includes(provider) || providers.includes("all");
-}
+const CONSOLE_TABS = [
+  "overview",
+  "analytics",
+  "releases",
+  "patches",
+  "health",
+  "rollback",
+  "ownership",
+  "developer",
+  "billing",
+  "trust",
+] as const;
 
 export function idleState<T>(): ApiState<T> {
   return { status: "idle", data: null, error: null };
@@ -359,8 +363,10 @@ export function OperatorConsolePage() {
   const [rollbackDialogOpen, setRollbackDialogOpen] = useState(false);
   const rollbackConfirmButtonRef = useRef<HTMLButtonElement | null>(null);
   const [appSearch, setAppSearch] = useState("");
-  const [appListLimit, setAppListLimit] = useState(24);
-  const [operatorTab, setOperatorTab] = useState<OperatorTab>("overview");
+  const [operatorTab, setOperatorTab] = useState<OperatorTab>(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab") || "";
+    return (CONSOLE_TABS as readonly string[]).includes(tab) ? (tab as OperatorTab) : "overview";
+  });
   const [releaseTab, setReleaseTab] = useState<ReleaseTab>("overview");
   const [releaseNotes, setReleaseNotes] = useState<Record<string, string>>(() => {
     try {
@@ -377,6 +383,11 @@ export function OperatorConsolePage() {
   const patchHealthAbortRef = useRef<AbortController | null>(null);
   const analyticsAbortRef = useRef<AbortController | null>(null);
   const analyticsLoadedForRef = useRef<string>("");
+  // Device health for every app, so the apps list and sidebar can say which app is in trouble without
+  // opening each one. Same endpoint as the analytics page; nothing is computed in the browser.
+  const [fleetAnalytics, setFleetAnalytics] = useState<Record<string, ApiState<JsonRecord>>>({});
+  // Releases arrive scoped to one app once an app is open, so the platforms seen so far are remembered.
+  const [platformsByApp, setPlatformsByApp] = useState<Record<string, string[]>>({});
   const cliLoginParams = new URLSearchParams(window.location.search);
   const cliLoginCallback = cliLoginParams.get("cli_login_callback") || "";
   const cliLoginState = cliLoginParams.get("cli_login_state") || "";
@@ -393,7 +404,6 @@ export function OperatorConsolePage() {
 
   const signedIn = Boolean(authToken && operatorState.status === "ready");
   const patchRecord = patchHealthState.data;
-  const healthRecord = healthState.data;
   const rollbackRecord = rollbackState.data;
   const rollbackTarget = patchId.trim();
   const rollbackConfirmArmed =
@@ -416,7 +426,6 @@ export function OperatorConsolePage() {
       inventoryReceivedAt &&
       Date.now() - Date.parse(inventoryReceivedAt) > 120000,
   );
-  const recentClients = collectRecentClients(patchRecord);
   const selectedPatchRecord =
     patchRecords.find((patch) => recordId(patch) === patchId.trim()) ?? null;
   const patchIdentityRecord = mergeRecords(patchRecord, selectedPatchRecord);
@@ -506,13 +515,6 @@ export function OperatorConsolePage() {
       fallback: patchRecord ? "unknown" : "not loaded",
     },
   ];
-  const lastPatchSignal = getRecordValue(patchRecord, [
-    "last_event",
-    "last_report",
-    "last_seen",
-    "updated_at",
-    "created_at",
-  ]);
   const requestedAppId = appIdFilter.trim();
   const selectedAppId = requestedAppId;
   const selectedAppRecord =
@@ -524,26 +526,6 @@ export function OperatorConsolePage() {
     ["name", "display_name", "app_name", "id", "app_id"],
     selectedAppId || "Select an app",
   );
-  const selectedAppPackage = formatRecordText(
-    selectedAppRecord,
-    ["package_id", "package", "android_package", "bundle_id"],
-    "package not recorded",
-  );
-  const appSearchQuery = appSearch.trim().toLowerCase();
-  const visibleApps = appRecords.filter((app) => {
-    const haystack = [
-      recordId(app),
-      formatRecordText(app, ["name", "display_name", "app_name"], ""),
-      formatRecordText(app, ["package_id", "package", "android_package", "bundle_id"], ""),
-      formatRecordText(app, ["platform"], ""),
-      formatRecordText(app, ["owner_email", "operator_email", "account"], ""),
-    ]
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(appSearchQuery);
-  });
-  const visibleAppRows = visibleApps.slice(0, appListLimit);
-  const hiddenVisibleAppCount = Math.max(visibleApps.length - visibleAppRows.length, 0);
   const visibleReleases = scopedAppId
     ? releaseRecords.filter((release) => {
         return recordBelongsToApp(release, scopedAppId);
@@ -584,10 +566,6 @@ export function OperatorConsolePage() {
   const operatorEmail =
     operatorState.data?.email || authUser?.email || "No operator signed in";
   const operatorIsAdmin = Boolean(operatorState.data?.is_admin);
-  const inventoryScopeLabel = operatorIsAdmin ? "Admin inventory" : "Your apps";
-  const inventoryScopeHelper = operatorIsAdmin
-    ? "All apps visible to this admin operator."
-    : "Apps owned by this signed-in operator.";
   const selectedPatchId = patchId.trim();
   const selectedPatchInScope = selectedPatchId
     ? visiblePatches.some((patch) => recordId(patch) === selectedPatchId)
@@ -644,7 +622,6 @@ export function OperatorConsolePage() {
         : rollbackConfirm.trim() !== rollbackTarget
           ? "Type the exact patch ID to arm rollback."
           : "";
-  const latestPatchId = latestPatchRecord ? recordId(latestPatchRecord) : "";
   const latestPatchLabel = latestPatchRecord
     ? `#${formatRecordText(latestPatchRecord, ["number", "patch_number"], "0")}`
     : "none";
@@ -657,7 +634,7 @@ export function OperatorConsolePage() {
     ? [
         {
           name: "store base",
-          platform: "Android",
+          platform: platformLabel(formatRecordText(selectedReleaseRecord, ["platform"], "")),
           size: formatBytesLabel(
             getRecordValue(selectedReleaseRecord, [
               "uploaded_artifact_bytes",
@@ -672,7 +649,7 @@ export function OperatorConsolePage() {
         latestPatchRecord
           ? {
               name: `latest patch ${latestPatchLabel}`,
-              platform: "Android",
+              platform: platformLabel(formatRecordText(selectedReleaseRecord, ["platform"], "")),
               size: formatBytesLabel(
                 getRecordValue(latestPatchRecord, [
                   "bundle_bytes",
@@ -717,93 +694,6 @@ export function OperatorConsolePage() {
     },
   ];
   const patchStateMax = Math.max(...patchStateBars.map((bar) => bar.value), 1);
-  const patchKindCounts = visiblePatches.reduce<Record<string, number>>(
-    (counts, patch) => {
-      const rawKind = formatRecordText(
-        patch,
-        ["kind", "patch_kind", "type"],
-        "unknown",
-      ).toLowerCase();
-      const kind = rawKind.includes("config")
-        ? "config"
-        : rawKind.includes("asset")
-          ? "asset"
-          : rawKind.includes("code") || rawKind.includes("aot")
-            ? "code"
-            : "unknown";
-      counts[kind] = (counts[kind] || 0) + 1;
-      return counts;
-    },
-    {},
-  );
-  const patchKindRows = Object.entries(patchKindCounts).sort((a, b) => b[1] - a[1]);
-  const releaseLaneRows = visibleReleases.slice(0, 5).map((release) => {
-    const releaseId = recordId(release);
-    const releasePatches = visiblePatches.filter(
-      (patch) =>
-        formatRecordText(patch, ["release_id", "release"], "") === releaseId,
-    );
-    const rolledBack = releasePatches.filter((patch) =>
-      recordFlag(patch, ["rolled_back", "rollback", "is_rolled_back"]),
-    ).length;
-
-    return {
-      id: releaseId,
-      label: formatRecordText(
-        release,
-        ["version", "version_name", "id", "release_id"],
-        releaseId || "Release",
-      ),
-      runtime: shortRecord(formatRecordText(release, ["runtime_id", "runtime"], "")),
-      patches: releasePatches.length,
-      active: Math.max(releasePatches.length - rolledBack, 0),
-      rolledBack,
-    };
-  });
-  const consoleHealthScore =
-    !authToken
-      ? 12
-      : operatorState.status === "error" || healthState.status === "error"
-        ? 34
-        : inventoryError
-          ? 58
-          : patchHealthState.status === "ready"
-            ? 94
-            : healthState.status === "ready"
-              ? 82
-              : 64;
-  const consoleHealthLabel =
-    !authToken
-      ? "auth required"
-      : operatorState.status === "error" || healthState.status === "error"
-        ? "control-plane attention"
-        : inventoryError
-          ? "inventory attention"
-          : patchHealthState.status === "ready"
-            ? "patch receipt loaded"
-            : "inventory ready";
-  const operatorQueueRows = [
-    {
-      label: "Auth",
-      value: operatorState.status === "ready" ? "verified" : "required",
-      detail: operatorEmail,
-    },
-    {
-      label: "API",
-      value: healthState.status === "ready" ? "reachable" : healthState.status,
-      detail: `checked ${formatReceivedAt(healthState.receivedAt)}`,
-    },
-    {
-      label: "Inventory",
-      value: `${visiblePatches.length} patches`,
-      detail: `${visibleReleases.length} releases in scope`,
-    },
-    {
-      label: "Rollback",
-      value: rollbackArmed ? "armed" : "guarded",
-      detail: rollbackTarget || "select a patch first",
-    },
-  ];
   const productView = buildProductReadinessView({
     product: productState.data,
     appCount: appRecords.length,
@@ -826,34 +716,6 @@ export function OperatorConsolePage() {
     : selectedReleaseMissing
       ? `Release ${selectedReleaseId} is not visible for ${selectedAppName}. Choose a release from this app.`
       : "";
-  const commandState = !authToken
-    ? "Sign in required"
-    : inventoryLoading
-      ? "Syncing inventory"
-      : selectedAppMissing
-        ? "App unavailable"
-        : selectedReleaseMissing
-          ? "Release unavailable"
-      : !selectedAppInScope
-        ? "Choose an app"
-      : visiblePatches.length
-        ? "Ready to inspect"
-        : "No patches in scope";
-  const scopeFacts: ScopeFact[] = [
-    selectedAppInScope
-      ? { label: "App", value: selectedAppName }
-      : { label: inventoryScopeLabel, value: `${appRecords.length} apps visible` },
-    {
-      label: "Release",
-      value: selectedReleaseInScope
-        ? shortRecord(selectedReleaseId)
-        : selectedReleaseMissing
-          ? "not visible"
-          : "select app first",
-    },
-    { label: "Runtime", value: shortRecord(selectedRuntimeId) || "any runtime" },
-    { label: "Latest patch", value: selectedAppInScope ? latestPatchLabel : "after app select" },
-  ];
   const isLocalOperatorPreview =
     window.location.hostname === "127.0.0.1" ||
     window.location.hostname === "localhost";
@@ -882,14 +744,114 @@ export function OperatorConsolePage() {
         : null;
   const cliLoginPending = Boolean(cliLoginCallback && cliLoginState);
   const isProductSection = isProductLayerTab(operatorTab);
-  const productSectionLabel = isProductSection
-    ? {
-        ownership: "Ownership",
-        developer: "Developer experience",
-        billing: "Billing and pricing",
-        trust: "Trust layer",
-      }[operatorTab]
-    : "";
+  const appSummaries: AppSummary[] = useMemo(
+    () =>
+      appRecords
+        .map((app) => {
+          const id = recordId(app);
+          const analytics = fleetAnalytics[id];
+          return {
+            id,
+            name: formatRecordText(app, ["name", "display_name", "app_name"], id),
+            platforms: platformsByApp[id] ?? [],
+            owner: formatRecordText(app, ["owner_email"], ""),
+            analytics,
+            view: analytics && analytics.status !== "idle" ? buildAnalyticsView(analytics) : undefined,
+          };
+        })
+        .filter((app) => app.id)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [appRecords, fleetAnalytics, platformsByApp],
+  );
+  const appHealthById: Record<string, AppHealth> = Object.fromEntries(
+    appSummaries.map((app) => [app.id, digestApp(app).health]),
+  );
+  const selectedSummary = appSummaries.find((app) => app.id === scopedAppId) ?? null;
+  const selectedDigest = digestApp(selectedSummary ?? {});
+  const selectedRows = selectedSummary?.view?.rows ?? [];
+  const releaseDigests: ReleaseDigest[] = [...visibleReleases]
+    .sort((a, b) => recordTimeValue(b) - recordTimeValue(a))
+    .map((release) => {
+      const id = recordId(release);
+      const rows = selectedRows.filter((row) => row.releaseId === id);
+      const rolledBack = rows.filter((row) => row.rolledBack).length;
+      const latest = rows.reduce<(typeof rows)[number] | null>(
+        (best, row) => (!best || row.patchNumber > best.patchNumber ? row : best),
+        null,
+      );
+      return {
+        id,
+        version: formatRecordText(release, ["version", "version_name"], id),
+        platform: formatRecordText(release, ["platform"], ""),
+        createdAt: recordDateLabel(release),
+        patches: rows.length,
+        live: rows.length - rolledBack,
+        rolledBack,
+        latest,
+      };
+    });
+  const releaseVersionById = new Map(
+    visibleReleases.map((release) => [recordId(release), formatRecordText(release, ["version", "version_name"], recordId(release))]),
+  );
+  const deliveryByPatchId = new Map(selectedRows.map((row) => [row.patchId, row]));
+  const patchListRows: PatchListRow[] = visiblePatchesNewest.map((patch) => {
+    const id = recordId(patch);
+    const releaseId = formatRecordText(patch, ["release_id", "release"], "");
+    return {
+      id,
+      number: formatRecordText(patch, ["number", "patch_number"], "?"),
+      releaseId,
+      releaseVersion: releaseVersionById.get(releaseId) ?? releaseId,
+      channel: formatRecordText(patch, ["channel"], "stable"),
+      kind: formatRecordText(patch, ["kind", "patch_kind", "type"], "unknown"),
+      rollout: formatRecordText(patch, ["rollout_percent"], ""),
+      rolledBack: recordFlag(patch, ["rolled_back", "rollback", "is_rolled_back"]),
+      createdAt: recordDateLabel(patch),
+      delivery: deliveryByPatchId.get(id) ?? null,
+    };
+  });
+  // Live patches for the rollback picker: failing ones first, then newest release first.
+  const rollbackChoices = selectedRows
+    .filter((row) => !row.rolledBack)
+    .sort(
+      (a, b) =>
+        Number(b.failedDevices > 0) - Number(a.failedDevices > 0) ||
+        b.releaseId.localeCompare(a.releaseId) ||
+        b.patchNumber - a.patchNumber,
+    )
+    .map((row) => ({
+      id: row.patchId,
+      label: `#${row.patchNumber} on ${releaseVersionById.get(row.releaseId) ?? row.releaseId}${
+        row.failedDevices ? ` · failing on ${row.failedDevices}` : row.observed ? ` · ${row.successfulDevices} booted` : ""
+      }`,
+    }));
+  const sectionLabels: Record<OperatorTab, string> = {
+    overview: "Overview",
+    analytics: "Device health",
+    releases: "Releases",
+    patches: "Patches",
+    health: "Patch health",
+    rollback: "Roll back",
+    ownership: "Access",
+    developer: "CLI setup",
+    billing: "Plan",
+    trust: "Security",
+  };
+  const crumbs: Crumb[] = isProductSection
+    ? [{ label: "Workspace" }, { label: sectionLabels[operatorTab] }]
+    : [
+        { label: "Apps", onClick: goHome },
+        ...(scopedAppId ? [{ label: selectedAppName, onClick: () => selectApp(scopedAppId) }] : []),
+        ...(scopedAppId && operatorTab !== "overview" ? [{ label: sectionLabels[operatorTab] }] : []),
+        ...(selectedReleaseInScope ? [{ label: selectedReleaseLabel, mono: true }] : []),
+      ];
+  const inventoryStatusText = inventoryLoading
+    ? "Refreshing…"
+    : inventoryStale
+      ? "May be out of date, refresh"
+      : inventoryReceivedAt
+        ? `Updated ${new Date(inventoryReceivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+        : "";
 
   async function deliverCliLogin(
     user: FirebaseAuthUser,
@@ -1134,6 +1096,33 @@ export function OperatorConsolePage() {
     void loadControlPlaneHealth();
     void loadProductReadiness();
     void loadInventory();
+    void loadFleetAnalytics(appRecords.map(recordId).filter(Boolean));
+    if (operatorTab === "analytics" && selectedAppId) {
+      void loadAnalytics(selectedAppId);
+    }
+  }
+
+  async function loadFleetAnalytics(appIds: string[]) {
+    // Enough for a real workspace; beyond this the list is searched, not scanned.
+    const ids = appIds.slice(0, 40);
+    await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const data = await fetchOperatorJson<JsonRecord>(
+            `/api/operator/analytics?app_id=${encodeURIComponent(id)}`,
+          );
+          setFleetAnalytics((prev) => ({
+            ...prev,
+            [id]: { status: "ready", data, error: null, receivedAt: new Date().toISOString() },
+          }));
+        } catch (error) {
+          setFleetAnalytics((prev) => ({
+            ...prev,
+            [id]: { status: "error", data: null, error: errorMessage(error) },
+          }));
+        }
+      }),
+    );
   }
 
   function goHome() {
@@ -1165,7 +1154,7 @@ export function OperatorConsolePage() {
     setRollbackConfirm("");
     setPatchHealthState(idleState);
     setRollbackState(idleState);
-    setOperatorTab("releases");
+    setOperatorTab("overview");
     setReleaseTab("overview");
     void loadInventory(undefined, {
       appId,
@@ -1217,6 +1206,14 @@ export function OperatorConsolePage() {
       channel: "stable",
       patch: "",
     });
+  }
+
+  function openRollbackFor(targetPatchId: string) {
+    setPatchId(targetPatchId);
+    setRollbackConfirm("");
+    setRollbackState(idleState);
+    setOperatorTab("rollback");
+    void loadPatchHealth(targetPatchId);
   }
 
   function selectPatch(nextPatchId: string) {
@@ -1456,6 +1453,68 @@ export function OperatorConsolePage() {
   }, [operatorTab, authToken, selectedAppId]);
 
   useEffect(() => {
+    const target = patchId.trim();
+    if (!authToken || !target || (operatorTab !== "rollback" && operatorTab !== "health")) {
+      return;
+    }
+    if (patchHealthState.status !== "idle") {
+      return;
+    }
+    void loadPatchHealth(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authToken, operatorTab, patchId]);
+
+  const appIdsKey = appRecords.map(recordId).filter(Boolean).sort().join(",");
+  useEffect(() => {
+    if (!authToken || !appIdsKey) {
+      return;
+    }
+    const missing = appIdsKey.split(",").filter((id) => !fleetAnalytics[id]);
+    if (missing.length) {
+      void loadFleetAnalytics(missing);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authToken, appIdsKey]);
+
+  useEffect(() => {
+    if (!releaseRecords.length) {
+      return;
+    }
+    setPlatformsByApp((prev) => {
+      const next = { ...prev };
+      for (const release of releaseRecords) {
+        const appId = formatRecordText(release, ["app_id"], "");
+        const platform = formatRecordText(release, ["platform"], "").toLowerCase();
+        if (!appId || !platform) continue;
+        const seen = new Set(next[appId] ?? []);
+        seen.add(platform);
+        next[appId] = [...seen].sort();
+      }
+      return next;
+    });
+  }, [releaseRecords]);
+
+  useEffect(() => {
+    // The analytics page's fresher answer for the open app is the one the rest of the console shows too.
+    if (analyticsState.status === "ready" && analyticsLoadedForRef.current) {
+      const id = analyticsLoadedForRef.current;
+      setFleetAnalytics((prev) => ({ ...prev, [id]: analyticsState }));
+    }
+  }, [analyticsState]);
+
+  useEffect(() => {
+    // The open section is part of the URL, so a link or a reload lands on the same screen.
+    const params = new URLSearchParams(window.location.search);
+    if (operatorTab === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", operatorTab);
+    }
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, [operatorTab]);
+
+  useEffect(() => {
     setRollbackConfirm("");
     setRollbackState(idleState);
     setRollbackDialogOpen(false);
@@ -1648,8 +1707,7 @@ export function OperatorConsolePage() {
               Sign in to the operator console
             </h1>
             <p className="mt-2 text-sm leading-6 text-[#6d6d72]">
-              Inspect your app inventory, release health, and patch receipts, and
-              guard rollbacks — all behind an enabled operator sign-in.
+              See how your updates are doing on real devices, find the one that broke something, and roll it back.
             </p>
 
             {cliLoginPending ? (
@@ -1706,39 +1764,34 @@ export function OperatorConsolePage() {
 
     return (
       <main className="operator-backdrop min-h-screen overflow-x-hidden text-[#111111]">
-        <section className="relative z-10 grid min-h-screen min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[236px_minmax(0,1fr)]">
-          <OperatorSidebar
+        <section className="relative z-10 grid min-h-screen min-w-0 grid-cols-[minmax(0,1fr)] content-start lg:grid-cols-[260px_minmax(0,1fr)] lg:content-stretch">
+          <ConsoleSidebar
+            apps={appSummaries}
+            appHealth={appHealthById}
+            selectedAppId={scopedAppId}
             operatorTab={operatorTab}
             operatorEmail={operatorEmail}
-            operatorState={operatorState}
             signedIn={signedIn}
             configReady={configState.status === "ready"}
+            onGoHome={goHome}
+            onSelectApp={selectApp}
             onSelectTab={setOperatorTab}
             onSignIn={() => void signIn("google")}
             onSignOut={() => void signOut()}
           />
 
           <div className="min-w-0 overflow-x-hidden">
-            <OperatorTopBar
-              healthState={healthState}
-              selectedAppId={scopedAppId}
-              selectedAppName={selectedAppName}
-              selectedReleaseId={selectedReleaseInScope ? selectedReleaseId : ""}
-              appSearch={appSearch}
-              inventoryLoading={inventoryLoading}
-              inventoryReceivedAt={inventoryReceivedAt}
-              inventoryStale={inventoryStale}
+            <ConsoleTopBar
+              crumbs={crumbs}
+              apiState={healthState.status}
+              statusText={inventoryStatusText}
+              statusStale={inventoryStale}
               canRefresh={Boolean(authToken)}
-              productSectionLabel={productSectionLabel}
-              onSearchChange={(value) => {
-                setAppSearch(value);
-                setAppListLimit(24);
-              }}
+              refreshing={inventoryLoading}
               onRefresh={refreshOperatorSurface}
-              onSelectTab={setOperatorTab}
             />
 
-            <section className="mx-auto min-w-0 max-w-[1280px] px-4 py-4 sm:px-6 lg:py-5">
+            <section className="mx-auto grid min-w-0 max-w-[1180px] grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-8 lg:py-8">
               {operatorTab === "analytics" ? (
                 <OperatorAnalyticsPage
                   apps={appRecords
@@ -1775,57 +1828,6 @@ export function OperatorConsolePage() {
                     setOperatorTab("rollback");
                   }}
                 />
-              ) : !isProductSection ? (
-                <>
-                  <OperatorCommandCenter
-                    commandState={commandState}
-                    latestPatchId={latestPatchId}
-                    scopeFacts={scopeFacts}
-                    signedIn={Boolean(authToken)}
-                    configReady={configState.status === "ready"}
-                    githubSignInEnabled={hasAuthProvider(configState.data?.provider, "github")}
-                    onSignIn={() => void signIn("google")}
-                    onGithubSignIn={() => void signIn("github")}
-                    onSignOut={() => void signOut()}
-                  />
-
-                  <div className="operator-panel operator-summary-grid overflow-hidden">
-                    <OperatorSummaryTile
-                      icon={LockKeyhole}
-                      label="Auth"
-                      value={operatorState.status === "ready" ? "Verified" : "Required"}
-                      helper={operatorEmail}
-                    />
-                    <OperatorSummaryTile
-                      icon={Server}
-                      label="API"
-                      value={healthState.status === "ready" ? "Reachable" : "Check"}
-                      helper={`last checked ${formatReceivedAt(healthState.receivedAt)}`}
-                    />
-                    <OperatorSummaryTile
-                      icon={PackageCheck}
-                      label={selectedAppInScope ? "Selected app" : inventoryScopeLabel}
-                      value={selectedAppInScope ? selectedAppName : `${appRecords.length} apps`}
-                      helper={
-                        selectedAppInScope
-                          ? `${visibleReleases.length} releases · ${visiblePatches.length} patches`
-                          : inventoryScopeHelper
-                      }
-                    />
-                    <OperatorSummaryTile
-                      icon={RadioTower}
-                      label="Channel"
-                      value={channelFilter.trim() || "stable"}
-                      helper={
-                        selectedReleaseInScope
-                          ? "release scoped"
-                          : selectedAppInScope
-                            ? "app scoped"
-                            : "choose an app"
-                      }
-                    />
-                  </div>
-                </>
               ) : null}
 
               {(
@@ -1837,11 +1839,7 @@ export function OperatorConsolePage() {
                 scopeSelectionWarning ||
                 productState.error
               ) ? (
-                <div className="operator-panel mt-3 p-2.5">
-                  <div className="mb-2 flex items-center gap-2 px-1 text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#7a7a80]">
-                    <AlertCircle className="size-3.5" />
-                    Notice
-                  </div>
+                <div className="grid gap-2">
                   {localPreviewNotice ? (
                     <StateNotice tone="warning" message={localPreviewNotice} />
                   ) : null}
@@ -1897,310 +1895,97 @@ export function OperatorConsolePage() {
                   </div>
                 </section>
               ) : (
-              <div
-                className={`mt-4 grid min-w-0 gap-4 ${
-                  selectedAppInScope ? "xl:grid-cols-[minmax(0,1fr)]" : ""
-                }`}
-              >
-                <section className="operator-panel overflow-hidden">
-		                  <div className="flex items-center justify-between gap-4 border-b border-black/10 px-4 py-3">
-                    <div>
-		                      <p className="text-sm font-semibold text-black">{inventoryScopeLabel}</p>
-		                      <p className="mt-0.5 text-xs text-[#7a7a80]">
-                            Select an app before inspecting releases, patches, artifacts, or rollback state.
-                          </p>
-                    </div>
-		                    <span className="rounded-full border border-black/10 bg-[#f7f7f8] px-2.5 py-1 text-xs font-medium text-[#6d6d72]">
-	                      {visibleApps.length} shown
-                    </span>
-                  </div>
-
-                  <div className="p-3.5">
-                    <div className="mb-3 flex items-center justify-between gap-3 text-xs text-[#6d6d72]">
-                      <span>
-                        {appSearchQuery
-                          ? `Filtered by "${appSearch.trim()}"`
-                          : inventoryScopeHelper}
-                      </span>
-                      {appSearchQuery ? (
-                        <button
+              operatorTab === "analytics" ? null : !selectedAppInScope || !selectedSummary ? (
+                <AppsHome
+                  apps={appSummaries}
+                  loading={inventoryLoading || appsState.status === "idle"}
+                  search={appSearch}
+                  onSearch={setAppSearch}
+                  onSelectApp={selectApp}
+                  isAdmin={operatorIsAdmin}
+                />
+              ) : (
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
+                {!selectedReleaseInScope ? (
+                  <AppHeader
+                    app={selectedSummary}
+                    digest={selectedDigest}
+                    section={operatorTab === "overview" ? undefined : sectionLabels[operatorTab]}
+                    actions={
+                      operatorTab === "overview" ? (
+                        <Button
                           type="button"
-                          className="font-medium text-black underline-offset-4 hover:underline"
-                          onClick={() => {
-                            setAppSearch("");
-                            setAppListLimit(24);
-                          }}
+                          variant="outline"
+                          className="h-9 border-black/15 bg-white text-black hover:bg-[#f3f3f4]"
+                          onClick={() => setOperatorTab("rollback")}
                         >
-                          Clear search
-                        </button>
-                      ) : null}
-                    </div>
-                    <div className="grid gap-2">
-                      {(appsState.status === "loading" || appsState.status === "idle") &&
-                      !appRecords.length ? (
-                        <ul className="grid gap-2" aria-hidden="true">
-                          {Array.from({ length: 4 }).map((_, index) => (
-                            <li
-                              key={index}
-                              className="h-[68px] animate-pulse border border-black/10 bg-[#f4f4f5]"
-                            />
-                          ))}
-                        </ul>
-                      ) : visibleApps.length ? (
-                        visibleAppRows.map((app) => {
-                          const id = recordId(app);
-                          const appReleaseCount = releaseRecords.filter(
-                            (release) =>
-                              formatRecordText(release, ["app_id"], "") === id,
-                          ).length;
-                          const appPatchCount = patchRecords.filter(
-                            (patch) => formatRecordText(patch, ["app_id"], "") === id,
-                          ).length;
-
-                          return (
-                            <button
-                              key={id || JSON.stringify(app)}
-                              type="button"
-                              aria-pressed={id === selectedAppId}
-	                              className={`focus-ring group border px-3 py-3 text-left transition ${
-	                                id === selectedAppId
-	                                  ? "border-black bg-black text-white shadow-sm"
-	                                  : "border-black/10 bg-white text-black hover:border-black/20 hover:bg-[#f4f4f5]"
-	                              }`}
-                              disabled={!id}
-                              onClick={() => selectApp(id)}
-                            >
-                              <div className="flex items-center gap-3">
-	                                <span className={`grid size-9 shrink-0 place-items-center border font-mono text-xs font-semibold transition ${
-                                      id === selectedAppId
-                                        ? "border-white/20 bg-white text-black"
-                                        : "border-black/10 bg-[#f7f7f8] text-black group-hover:border-black/20"
-                                    }`}>
-                                  {(formatRecordText(
-                                    app,
-                                    ["name", "display_name", "app_name", "id", "app_id"],
-                                    id || "AP",
-                                  )
-                                    .slice(0, 2)
-                                    .toUpperCase())}
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-semibold">
-                                    {formatRecordText(
-                                      app,
-                                      ["name", "display_name", "app_name"],
-                                      id || "Untitled app",
-                                    )}
-                                  </p>
-	                                  <p className={`mt-0.5 truncate font-mono text-[0.68rem] ${
-                                      id === selectedAppId ? "text-white/70" : "text-[#7a7a80]"
-                                    }`}>
-                                    {id || "missing app id"}
-                                  </p>
-                                </div>
-                              </div>
-	                              <div className={`mt-3 flex gap-2 text-xs ${
-                                  id === selectedAppId ? "text-white/70" : "text-[#6d6d72]"
-                                }`}>
-                                <span>{appReleaseCount} releases</span>
-                                <span>·</span>
-	                                <span>{appPatchCount} patches</span>
-	                              </div>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <ConsoleEmpty
-                          title={signedIn ? "No apps found" : "Auth required"}
-                          body={
-                            signedIn
-                              ? "Refresh inventory or clear the search field."
-                              : "Sign in to load your Soroq app inventory."
-                          }
-                        />
-                      )}
-                    </div>
-                    {hiddenVisibleAppCount ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="mt-3 h-9 w-full border-black/10 bg-white text-black hover:bg-[#f3f3f4]"
-                        onClick={() => setAppListLimit((limit) => limit + 24)}
-                      >
-                        Show {Math.min(24, hiddenVisibleAppCount)} more apps
-                      </Button>
-                    ) : null}
-                  </div>
-                </section>
-
-                {selectedAppInScope ? (
-                <section className="operator-panel min-w-0 overflow-hidden">
-	                  <div className="border-b border-black/10 p-4">
-                    <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-[#7a7a80]">
-                      <button
-                        type="button"
-                        className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-2.5 py-1 font-medium text-black hover:bg-[#f4f4f5]"
-                        onClick={goHome}
-                      >
-                        <Home className="size-3.5" />
-                        Apps
-                      </button>
-                      <ChevronRight className="size-3.5" />
-                      <span className="max-w-[42ch] truncate font-medium text-black">
-                        {selectedAppName}
-                      </span>
-                      {selectedReleaseInScope ? (
-                        <>
-                          <ChevronRight className="size-3.5" />
-                          <span className="font-mono text-[#4d4d52]">
-                            {selectedReleaseLabel}
-                          </span>
-                        </>
-                      ) : null}
-                    </div>
-                    <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
-                      <div className="flex min-w-0 gap-3">
-	                        <span className="grid size-11 shrink-0 place-items-center border border-black bg-black text-white">
-                          <PackageCheck className="size-5" />
-                        </span>
-                        <div className="min-w-0">
-		                          <p className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#8d8d93]">
-	                            Selected app workspace
-	                          </p>
-	                          <h1 className="mt-1 break-words text-2xl font-semibold tracking-[-0.025em]">
-	                            {selectedAppName}
-	                          </h1>
-                              <p className="mt-2 break-all font-mono text-xs text-[#4d4d52]">
-                                {selectedAppId || "No app selected"}
-                              </p>
-		                          <p className="mt-2 flex flex-wrap gap-2 text-sm text-[#6d6d72]">
-	                            <span>{operatorEmail}</span>
-	                            <span>·</span>
-	                            <span>Android</span>
-	                            <span>·</span>
-	                            <span>{selectedAppPackage}</span>
-	                            <span>·</span>
-	                            <span>
-	                              {selectedRuntimeId
-	                                ? `Runtime ${shortRecord(selectedRuntimeId)}`
-	                                : "Runtime pending"}
-	                            </span>
-	                          </p>
-	                        </div>
-	                      </div>
-                      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                        <ConsoleMiniStat label="Releases" value={String(visibleReleases.length)} />
-                        <ConsoleMiniStat label="Patches" value={String(visiblePatches.length)} />
-                        <ConsoleMiniStat
-                          label="Latest"
-                          value={
-                            latestPatchRecord
-                              ? `#${formatRecordText(
-                                  latestPatchRecord,
-                                  ["number", "patch_number"],
-                                  "0",
-                                )}`
-                              : "none"
-                          }
-                        />
-                        <ConsoleMiniStat
-                          label="Channel"
-                          value={channelFilter.trim() || "stable"}
-                        />
-                      </div>
-                    </div>
-
-                    {!selectedReleaseInScope ? (
+                          <RotateCcw className="size-4" />
+                          Roll back a patch
+                        </Button>
+                      ) : null
+                    }
+                  />
+                ) : null}
+                {!selectedReleaseInScope && operatorTab === "patches" ? (
                     <form
-                      className="operator-table-shell mt-4 grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_150px_auto_auto]"
+                      className="flex flex-wrap items-end gap-3"
                       onSubmit={(event) => {
                         event.preventDefault();
                         applyScopeFilters();
                       }}
                     >
-                      <label className="grid min-w-0 gap-1.5">
-	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
-                          Scope controls
-                        </span>
-                        <input
-                          list="operator-release-options"
+                      <label className="grid min-w-[200px] flex-1 gap-1 text-xs text-[#6d6d72]">
+                        Release
+                        <select
                           value={releaseIdFilter}
                           onChange={(event) => setReleaseIdFilter(event.target.value)}
-                          placeholder="release ID"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
-                        />
+                          className="focus-ring h-9 rounded-md border border-black/10 bg-white px-2.5 text-sm text-black"
+                        >
+                          <option value="">All releases</option>
+                          {releaseDigests.map((release) => (
+                            <option key={release.id} value={release.id}>
+                              {release.version} ({release.id})
+                            </option>
+                          ))}
+                        </select>
                       </label>
-                      <label className="grid min-w-0 gap-1.5">
-	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
-                          Runtime
-                        </span>
-                        <input
-                          value={runtimeIdFilter}
-                          onChange={(event) => setRuntimeIdFilter(event.target.value)}
-                          placeholder="runtime ID"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
-                        />
-                      </label>
-                      <label className="grid min-w-0 gap-1.5">
-	                        <span className="text-[0.65rem] font-medium uppercase tracking-[0.13em] text-[#8d8d93]">
-                          Channel
-                        </span>
+                      <label className="grid w-32 gap-1 text-xs text-[#6d6d72]">
+                        Channel
                         <input
                           value={channelFilter}
                           onChange={(event) => setChannelFilter(event.target.value)}
                           placeholder="stable"
-	                          className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
+                          className="focus-ring h-9 rounded-md border border-black/10 bg-white px-2.5 text-sm text-black outline-none placeholder:text-[#9a9aa1]"
+                        />
+                      </label>
+                      <label className="grid min-w-[160px] flex-1 gap-1 text-xs text-[#6d6d72]">
+                        Runtime id
+                        <input
+                          value={runtimeIdFilter}
+                          onChange={(event) => setRuntimeIdFilter(event.target.value)}
+                          placeholder="any"
+                          className="focus-ring h-9 rounded-md border border-black/10 bg-white px-2.5 font-mono text-xs text-black outline-none placeholder:text-[#9a9aa1]"
                         />
                       </label>
                       <Button
                         type="submit"
-	                        className="h-9 self-end bg-black px-4 text-white hover:bg-[#2b2b2d]"
+                        className="h-9 bg-black px-4 text-white hover:bg-[#2b2b2d]"
                         disabled={!authToken || inventoryLoading}
                       >
-                        Apply scope
+                        Apply filters
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
-	                        className="h-9 self-end border-black/10 bg-white px-4 text-black hover:bg-[#f3f3f4]"
+                        className="h-9 border-black/10 bg-white px-3 text-black hover:bg-[#f3f3f4]"
                         disabled={!authToken || inventoryLoading}
                         onClick={clearScopeFilters}
                       >
-                        Clear
+                        Reset
                       </Button>
-                      <datalist id="operator-release-options">
-                        {releaseRecords.map((release) => {
-                          const id = recordId(release);
-                          return id ? <option key={id} value={id} /> : null;
-                        })}
-                      </datalist>
                     </form>
-                    ) : null}
-                    {!selectedReleaseInScope ? (
-                      <div className="mt-4 flex min-w-0 gap-1 overflow-x-auto border-t border-black/10 pt-3">
-                        {appWorkspaceTabs.map(({ key, label, icon: Icon }) => {
-                          const active = operatorTab === key;
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              className={`focus-ring flex shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition ${
-                                active
-                                  ? "border-black text-black"
-                                  : "border-transparent text-[#6d6d72] hover:text-black"
-                              }`}
-                              onClick={() => setOperatorTab(key)}
-                            >
-                              <Icon className="size-4" />
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-
-	                  <div className="p-4">
+                ) : null}
+                  <div className="min-w-0">
                     {selectedReleaseInScope ? (
                       <div className="grid gap-4">
                         <div className="flex flex-col justify-between gap-3 border-b border-black/10 pb-4 md:flex-row md:items-start">
@@ -2274,83 +2059,18 @@ export function OperatorConsolePage() {
                               />
                             </div>
 
-                            <div className="operator-table-shell overflow-hidden">
-                              <div className="flex items-center justify-between gap-4 border-b border-black/10 bg-[#f7f7f8] px-4 py-3">
-                                <div>
-                                  <h3 className="text-sm font-semibold text-black">
-                                    Patches on this release
-                                  </h3>
-                                  <p className="mt-1 text-xs text-[#6d6d72]">
-                                    Grouped by the selected channel and exact base release.
-                                  </p>
-                                </div>
-                                <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs text-[#4d4d52]">
-                                  {visiblePatches.length} patches
-                                </span>
-                              </div>
-                              {visiblePatchesNewest.length ? (
-                                visiblePatchesNewest.map((patch) => {
-                                  const id = recordId(patch);
-                                  const rolledBack = recordFlag(patch, [
-                                    "rolled_back",
-                                    "rollback",
-                                    "is_rolled_back",
-                                  ]);
-                                  return (
-                                    <button
-                                      key={id || JSON.stringify(patch)}
-                                      type="button"
-                                      className="operator-table-row grid w-full gap-3 border-b border-black/10 px-4 py-3 text-left last:border-b-0 md:grid-cols-[minmax(0,1fr)_120px_120px_140px]"
-                                      disabled={!id || patchHealthState.status === "loading"}
-                                      onClick={() => {
-                                        selectPatch(id);
-                                        setReleaseTab("insights");
-                                      }}
-                                    >
-                                      <span className="min-w-0">
-                                        <span className="block text-sm font-semibold">
-                                          Patch #
-                                          {formatRecordText(
-                                            patch,
-                                            ["number", "patch_number"],
-                                            "0",
-                                          )}
-                                        </span>
-                                        <span className="mt-1 block break-all font-mono text-[0.68rem] text-[#7a7a80]">
-                                          {id}
-                                        </span>
-                                      </span>
-                                      <span className="rounded-full border border-black/10 bg-[#f7f7f8] px-2.5 py-1 text-xs text-[#4d4d52]">
-                                        {formatRecordText(patch, ["channel"], "stable")}
-                                      </span>
-                                      <span className="text-xs font-medium text-[#4d4d52]">
-                                        {formatRecordText(
-                                          patch,
-                                          ["kind", "patch_kind", "type"],
-                                          "unknown",
-                                        )}
-                                      </span>
-                                      <span
-                                        className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${
-                                          rolledBack
-                                            ? "border border-black/20 bg-[#efeff0] text-black"
-                                            : "border border-black bg-black text-white"
-                                        }`}
-                                      >
-                                        {rolledBack ? "Rolled back" : "Latest eligible"}
-                                      </span>
-                                    </button>
-                                  );
-                                })
-                              ) : (
-                                <div className="p-4">
-                                  <ConsoleEmpty
-                                    title="No patches on this release"
-                                    body="This release is registered, but no visible patch is tied to it in the selected channel."
-                                  />
-                                </div>
-                              )}
-                            </div>
+                            <PatchesTable
+                              rows={patchListRows}
+                              selectedPatchId={patchId.trim()}
+                              onInspect={(id) => {
+                                selectPatch(id);
+                                setReleaseIdFilter("");
+                              }}
+                              onRollback={(id) => {
+                                setReleaseIdFilter("");
+                                openRollbackFor(id);
+                              }}
+                            />
                           </div>
                         ) : null}
 
@@ -2496,23 +2216,13 @@ export function OperatorConsolePage() {
                     ) : null}
 
 	                    {!selectedReleaseInScope && operatorTab === "overview" ? (
-	                      <OperatorOverviewPanel
-                        consoleHealthLabel={consoleHealthLabel}
-                        consoleHealthScore={consoleHealthScore}
-                        operatorQueueRows={operatorQueueRows}
-                        patchStateBars={patchStateBars}
-                        patchStateMax={patchStateMax}
-                        releaseLaneRows={releaseLaneRows}
-                        releaseCount={visibleReleases.length}
-                        patchKindRows={patchKindRows}
-                        canRefresh={Boolean(authToken)}
-                        inventoryLoading={inventoryLoading}
-                        latestPatchId={latestPatchId}
-                        selectedPatchId={patchId}
-                        onRefresh={refreshOperatorSurface}
-                        onSelectPatch={selectPatch}
-                        onSelectRelease={selectRelease}
-                        onSelectTab={setOperatorTab}
+                      <AppOverview
+                        digest={selectedDigest}
+                        releases={releaseDigests}
+                        onOpenAnalytics={() => setOperatorTab("analytics")}
+                        onOpenRelease={selectRelease}
+                        onOpenPatches={() => setOperatorTab("patches")}
+                        onOpenRollback={openRollbackFor}
                       />
                     ) : null}
 
@@ -2595,227 +2305,63 @@ export function OperatorConsolePage() {
                     ) : null}
 
                     {!selectedReleaseInScope && operatorTab === "patches" ? (
-                      <div>
-	                        <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-	                          <div>
-	                            <h2 className="text-lg font-semibold tracking-tight">
-	                              Patch registry
-	                            </h2>
-	                            <p className="mt-1 text-sm text-[#6d6d72]">
-	                              Current patches for the selected app and release.
-	                            </p>
-	                          </div>
-		                          <span className="w-fit rounded-full border border-black/10 bg-[#f7f7f8] px-3 py-1.5 text-xs font-medium text-[#6d6d72]">
-	                            {visiblePatches.length} visible
-	                          </span>
-	                        </div>
-		                          <div className="operator-table-shell overflow-x-auto">
-			                          <div className="grid min-w-[860px] grid-cols-[minmax(260px,1fr)_170px_120px_120px_130px] gap-3 border-b border-black/10 bg-[#f7f7f8] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
-		                            <span>Patch</span>
-		                            <span>Release</span>
-		                            <span>Channel</span>
-                                <span>Kind</span>
-		                            <span>Status</span>
-		                          </div>
-                          {visiblePatches.length ? (
-                            visiblePatchesNewest.map((patch) => {
-	                              const id = recordId(patch);
-	                              const rolledBack = recordFlag(patch, [
-                                  "rolled_back",
-                                  "rollback",
-                                  "is_rolled_back",
-                                ]);
-                                const rollout = formatRecordText(
-                                  patch,
-                                  ["rollout_percent", "rollout", "percentage"],
-                                  "",
-                                );
-	                              return (
-	                                <button
-	                                  key={id || JSON.stringify(patch)}
-	                                  type="button"
-			                                  className="operator-table-row grid min-w-[860px] w-full grid-cols-[minmax(260px,1fr)_170px_120px_120px_130px] items-center gap-3 border-b border-black/10 bg-transparent px-4 py-3.5 text-left last:border-b-0"
-	                                  disabled={!id || patchHealthState.status === "loading"}
-	                                  onClick={() => selectPatch(id)}
-	                                >
-	                                  <span>
-	                                    <span className="block text-sm font-semibold">
-                                      Patch #
-                                      {formatRecordText(
-                                        patch,
-                                        ["number", "patch_number"],
-                                        "0",
-                                      )}
-                                    </span>
-		                                    <span className="mt-1 block break-all font-mono text-[0.68rem] text-[#7a7a80]">
-	                                      {id}
-	                                    </span>
-		                                    <span className="mt-1 block text-xs text-[#7a7a80]">
-	                                      rollout {rollout || "default"} · app{" "}
-                                        {formatRecordText(patch, ["app_id"], scopedAppId || "unknown")}
-	                                    </span>
-	                                  </span>
-			                                  <span className="break-all font-mono text-xs text-[#6d6d72]">
-		                                    {shortRecord(
-		                                      formatRecordText(
-		                                        patch,
-		                                        ["release_id", "release"],
-		                                        selectedReleaseId || "release",
-	                                      ),
-	                                    )}
-	                                  </span>
-			                                  <span className="rounded-full border border-black/10 bg-[#f7f7f8] px-2.5 py-1 text-xs text-[#4d4d52]">
-		                                    {formatRecordText(patch, ["channel"], "stable")}
-		                                  </span>
-                                  <span className="text-xs font-medium text-[#4d4d52]">
-                                    {formatRecordText(patch, ["kind", "patch_kind", "type"], "unknown")}
-                                  </span>
-	                                  <span
-	                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-	                                      rolledBack
-	                                        ? "border border-black/20 bg-[#efeff0] text-black"
-	                                        : "border border-black bg-black text-white"
-	                                    }`}
-	                                  >
-	                                    {rolledBack ? "Rolled back" : "Inspect"}
-	                                  </span>
-	                                </button>
-	                              );
-	                            })
-                          ) : (
-                            <ConsoleEmpty
-                              title="No patches in this view"
-                              body="Clear filters or publish a patch for this app/release."
-                            />
-                          )}
-                        </div>
-                      </div>
+                      <PatchesTable
+                        rows={patchListRows}
+                        selectedPatchId={patchId.trim()}
+                        onInspect={selectPatch}
+                        onRollback={openRollbackFor}
+                      />
                     ) : null}
 
                     {!selectedReleaseInScope && operatorTab === "health" ? (
                       <div className="grid gap-4">
-                        <form
-                          className="grid gap-3 md:grid-cols-[1fr_auto]"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            void loadPatchHealth();
-                          }}
-                        >
-                          <label className="grid gap-2">
-	                            <span className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
-                              Patch ID
-                            </span>
-                            <input
-                              value={patchId}
-                              onChange={(event) => setPatchId(event.target.value)}
-                              placeholder="paste or select patch ID"
-	                              className="focus-ring h-9 border border-black/10 bg-white px-3 font-mono text-sm text-black outline-none placeholder:text-[#9a9aa1]"
-                            />
-                          </label>
-                          <Button
-                            type="submit"
-	                            className="h-9 self-end bg-black text-white hover:bg-[#2b2b2d]"
-                            disabled={!authToken || patchHealthState.status === "loading"}
-                          >
-                            {patchHealthState.status === "loading" ? (
-                              <Loader2 className="size-4 animate-spin" />
-                            ) : (
-                              <Search className="size-4" />
-                            )}
-                            Check patch
-                          </Button>
-                        </form>
-
-	                        {patchHealthState.error ? (
-	                          <StateNotice tone="error" message={patchHealthState.error} />
-	                        ) : null}
-                          {patchScopeWarning ? (
-                            <StateNotice tone="warning" message={patchScopeWarning} />
-                          ) : null}
-
-                        <div className="grid gap-3 md:grid-cols-3">
-                          {patchMetrics.map((metric) => (
-                            <OperatorMetric
-                              key={metric.label}
-                              label={metric.label}
-                              value={formatMetric(metric.value, metric.fallback)}
-                              helper={metric.helper}
-                            />
-                          ))}
-                        </div>
-
-                        <div className="operator-panel-soft p-4">
-                          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
-                            <div>
-	                              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
-                                selected patch identity
-                              </p>
-                              <h3 className="mt-2 text-lg font-semibold">
-                                Know exactly which patch this receipt belongs to.
-                              </h3>
-	                              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6d6d72]">
-                                Pair this hosted identity with SDK status like Device Phase and
-                                Device Patch before rollback.
-                              </p>
-                            </div>
-	                            <span className="w-fit rounded-full border border-black/10 bg-[#f7f7f8] px-3 py-1.5 text-xs font-medium text-[#6d6d72]">
-                              exact patch id
-                            </span>
-                          </div>
-                          <div className="mt-4 grid gap-3 md:grid-cols-3">
-                            {patchIdentityRows.map((row) => (
-                              <ConsoleMiniStat
-                                key={row.label}
-                                label={row.label}
-                                value={row.value}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-                          <div className="operator-panel-soft p-4">
-	                            <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
-                              Last signal
-                            </p>
-                            <p className="mt-3 break-words text-xl font-semibold">
-                              {formatMetric(lastPatchSignal, "none yet")}
-                            </p>
-                            {recentClients.length ? (
-                              <div className="mt-4 flex flex-wrap gap-2">
-                                {recentClients.map((client) => (
-                                  <span
-                                    key={client}
-	                                    className="rounded-full border border-black/10 bg-[#f7f7f8] px-3 py-1.5 font-mono text-xs text-[#4d4d52]"
-                                  >
-                                    {client}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-                          <JsonPreview
-                            data={patchRecord}
-                            empty="Patch health JSON will appear here after a successful lookup."
-                          />
-                        </div>
+                        {patchScopeWarning ? <StateNotice tone="warning" message={patchScopeWarning} /> : null}
+                        <PatchHealthPanel
+                          patchId={patchId.trim()}
+                          delivery={deliveryByPatchId.get(patchId.trim()) ?? null}
+                          identity={patchIdentityRows.map((row) => ({ label: row.label, value: row.value }))}
+                          loading={patchHealthState.status === "loading"}
+                          error={patchHealthState.error ?? ""}
+                          raw={patchRecord}
+                          onRollback={() => openRollbackFor(patchId.trim())}
+                          onOpenDeviceHealth={() => setOperatorTab("analytics")}
+                        />
                       </div>
                     ) : null}
 
                     {!selectedReleaseInScope && operatorTab === "rollback" ? (
                       <div className="grid gap-4">
-	                        <div className="overflow-hidden border border-black/15 bg-white">
-	                          <div className="border-b border-black/10 bg-[#f7f7f8] px-4 py-3">
-	                            <h2 className="text-sm font-semibold text-black">
-                              Rollback guard
-                            </h2>
-                          </div>
+	                        <div className="overflow-hidden rounded-lg border border-black/10 bg-white">
 	                          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_auto] lg:items-end">
 	                            <div>
-	                              <h3 className="text-base font-semibold">Roll back patch</h3>
-		                              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6d6d72]">
-	                                Type the exact patch ID only after the selected patch identity matches this app workspace.
-	                              </p>
+                              <h3 className="text-base font-semibold">Withdraw a patch from every device</h3>
+                              <p className="mt-1 max-w-2xl text-sm leading-6 text-[#6d6d72]">
+                                Devices stop receiving it and return to the previous good version on their next launch. Pick the patch, check it is the right one, then type its id to confirm.
+                              </p>
+                              <label className="mt-4 grid max-w-2xl gap-1 text-xs text-[#6d6d72]">
+                                Patch
+                                <select
+                                  value={patchId}
+                                  onChange={(event) => {
+                                    if (event.target.value) {
+                                      openRollbackFor(event.target.value);
+                                    } else {
+                                      setPatchId("");
+                                    }
+                                  }}
+                                  className="focus-ring h-9 rounded-md border border-black/10 bg-white px-2.5 text-sm text-black"
+                                >
+                                  <option value="">Choose a live patch…</option>
+                                  {patchId.trim() && !rollbackChoices.some((choice) => choice.id === patchId.trim()) ? (
+                                    <option value={patchId.trim()}>{patchId.trim()} (not live)</option>
+                                  ) : null}
+                                  {rollbackChoices.map((choice) => (
+                                    <option key={choice.id} value={choice.id}>
+                                      {choice.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
                                   <div className="mt-4 grid gap-2 md:grid-cols-3">
                                     {patchIdentityRows.slice(0, 6).map((row) => (
                                       <ConsoleMiniStat
@@ -2838,16 +2384,14 @@ export function OperatorConsolePage() {
 	                                onChange={(event) =>
 	                                  setRollbackConfirm(event.target.value)
 	                                }
-                                placeholder={
-                                  rollbackTarget || "select a patch from Patches first"
-                                }
+                                placeholder={rollbackTarget ? `Type ${rollbackTarget}` : "Choose a patch first"}
 	                                className="focus-ring mt-4 h-9 w-full border border-black/10 bg-white px-3 font-mono text-sm text-black outline-none placeholder:text-[#9a9aa1]"
                               />
                             </div>
                             <Button
                               type="button"
                               variant="outline"
-	                              className="focus-ring h-9 border-black bg-black px-5 text-white hover:bg-[#2b2b2d]"
+	                              className="focus-ring h-9 border-[#c0392b] bg-[#c0392b] px-5 text-white hover:bg-[#a53125] hover:text-white disabled:border-black/10 disabled:bg-[#e9e9eb] disabled:text-[#8d8d93]"
                               disabled={!rollbackArmed}
                               onClick={() => setRollbackDialogOpen(true)}
                             >
@@ -2870,10 +2414,7 @@ export function OperatorConsolePage() {
                             empty="Rollback response will appear here."
                           />
                         ) : null}
-                        <JsonPreview
-                          data={healthRecord}
-                          empty="Control-plane health JSON appears after auth."
-                        />
+                        
 
                         {rollbackDialogOpen ? (
                           <div
@@ -2929,9 +2470,8 @@ export function OperatorConsolePage() {
                       </div>
                     ) : null}
                   </div>
-                </section>
-                ) : null}
               </div>
+              )
               )}
             </section>
           </div>
