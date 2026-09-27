@@ -168,7 +168,7 @@ describe("the shipped console uses this model", () => {
   });
 
   it("the proxy forwards and computes nothing", async () => {
-    const proxy = await read("../../../api/operator/analytics.js");
+    const proxy = await read("../../../api/_operator/analytics.js");
     expect(proxy).toContain("forwardJSON");
     expect(proxy).toContain("/v1/analytics");
     expect(proxy).not.toContain("isOperatorScopeDenied");
