@@ -46,7 +46,7 @@ import {
 } from "@/operator/components/ProductLayerTabs";
 import { buildProductReadinessView } from "@/operator/productReadiness";
 import { buildAnalyticsView } from "@/operator/analytics";
-import { OperatorAnalyticsPanel } from "@/operator/components/OperatorAnalyticsPanel";
+import { OperatorAnalyticsPage } from "@/operator/components/OperatorAnalyticsPage";
 import {
   apiList,
   collectRecentClients,
@@ -1739,7 +1739,43 @@ export function OperatorConsolePage() {
             />
 
             <section className="mx-auto min-w-0 max-w-[1280px] px-4 py-4 sm:px-6 lg:py-5">
-              {!isProductSection ? (
+              {operatorTab === "analytics" ? (
+                <OperatorAnalyticsPage
+                  apps={appRecords
+                    .map((app) => {
+                      const id = recordId(app);
+                      return { id, name: formatRecordText(app, ["name", "display_name", "app_name"], id) };
+                    })
+                    .filter((app) => app.id)
+                    .sort((a, b) => a.name.localeCompare(b.name))}
+                  selectedAppId={selectedAppId ?? ""}
+                  onSelectApp={(appId) => {
+                    setAppIdFilter(appId);
+                    setReleaseIdFilter("");
+                    setRuntimeIdFilter("");
+                    setPatchId("");
+                    setAnalyticsState(idleState);
+                    analyticsLoadedForRef.current = "";
+                    const params = new URLSearchParams(window.location.search);
+                    if (appId) {
+                      params.set("app_id", appId);
+                    } else {
+                      params.delete("app_id");
+                    }
+                    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+                  }}
+                  state={analyticsState}
+                  view={buildAnalyticsView(analyticsState)}
+                  canLoad={Boolean(authToken)}
+                  onRefresh={() => void loadAnalytics(selectedAppId ?? "")}
+                  onOpenRollback={(targetPatchId) => {
+                    setPatchId(targetPatchId);
+                    setRollbackConfirm("");
+                    setRollbackState(idleState);
+                    setOperatorTab("rollback");
+                  }}
+                />
+              ) : !isProductSection ? (
                 <>
                   <OperatorCommandCenter
                     commandState={commandState}
@@ -1926,10 +1962,10 @@ export function OperatorConsolePage() {
                               key={id || JSON.stringify(app)}
                               type="button"
                               aria-pressed={id === selectedAppId}
-	                              className={`focus-ring group border px-3 py-3 text-left transition hover:border-black/20 hover:bg-[#f4f4f5] ${
+	                              className={`focus-ring group border px-3 py-3 text-left transition ${
 	                                id === selectedAppId
 	                                  ? "border-black bg-black text-white shadow-sm"
-	                                  : "border-black/10 bg-white text-black"
+	                                  : "border-black/10 bg-white text-black hover:border-black/20 hover:bg-[#f4f4f5]"
 	                              }`}
                               disabled={!id}
                               onClick={() => selectApp(id)}
@@ -2764,16 +2800,6 @@ export function OperatorConsolePage() {
                           />
                         </div>
                       </div>
-                    ) : null}
-
-                    {!selectedReleaseInScope && operatorTab === "analytics" ? (
-                      <OperatorAnalyticsPanel
-                        appId={selectedAppId ?? ""}
-                        state={analyticsState}
-                        view={buildAnalyticsView(analyticsState)}
-                        canLoad={Boolean(authToken)}
-                        onRefresh={() => void loadAnalytics(selectedAppId ?? "")}
-                      />
                     ) : null}
 
                     {!selectedReleaseInScope && operatorTab === "rollback" ? (

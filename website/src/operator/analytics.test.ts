@@ -163,7 +163,7 @@ describe("the shipped console uses this model", () => {
   it("the console page builds the view from the analytics state and renders the panel", async () => {
     const page = await read("../console/OperatorConsolePage.tsx");
     expect(page).toContain("buildAnalyticsView(analyticsState)");
-    expect(page).toContain("<OperatorAnalyticsPanel");
+    expect(page).toContain("<OperatorAnalyticsPage");
     expect(page).toContain("/api/operator/analytics?app_id=");
   });
 
