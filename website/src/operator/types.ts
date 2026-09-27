@@ -38,6 +38,7 @@ export type OperatorTab =
   | "patches"
   | "releases"
   | "health"
+  | "analytics"
   | "rollback";
 
 export type OperatorTabDefinition = {

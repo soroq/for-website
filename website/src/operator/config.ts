@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   CircleGauge,
   LockKeyhole,
@@ -19,5 +20,6 @@ export const operatorTabs: OperatorTabDefinition[] = [
   { key: "patches", label: "Patches", icon: RadioTower },
   { key: "releases", label: "Releases", icon: TerminalSquare },
   { key: "health", label: "Health", icon: BarChart3 },
+  { key: "analytics", label: "Analytics", icon: Activity },
   { key: "rollback", label: "Rollback", icon: RotateCcw },
 ];
