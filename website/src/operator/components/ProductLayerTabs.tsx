@@ -21,24 +21,24 @@ const productPageMeta: Record<
   { eyebrow: string; title: string; body: string }
 > = {
   ownership: {
-    eyebrow: "Product layer / Ownership",
-    title: "Operator ownership and app access",
-    body: "Control who can see apps, releases, patches, health receipts, and rollback controls before this console reaches outside developers.",
+    eyebrow: "",
+    title: "Access",
+    body: "Who can see and change your apps. Each app belongs to its owner's account; admins see every app.",
   },
   developer: {
-    eyebrow: "Product layer / Developer",
-    title: "Developer workflow and CLI experience",
-    body: "Keep the product path command-shaped: login, initialize, release, patch, inspect, and rollback without exposing internal implementation details.",
+    eyebrow: "",
+    title: "CLI setup",
+    body: "Everything in this console can also be done from the terminal. Sign in once, then release, patch and roll back from your app folder.",
   },
   billing: {
-    eyebrow: "Product layer / Billing",
-    title: "Pricing, usage, and account posture",
-    body: "Track what can be charged, what is still beta-only, and what must stay disabled until a real billing provider is wired.",
+    eyebrow: "",
+    title: "Plan",
+    body: "Soroq is free during the developer beta. This is what your workspace uses today.",
   },
   trust: {
-    eyebrow: "Product layer / Trust",
-    title: "Production trust and safety controls",
-    body: "Keep auth, hosted ownership, signing, rollback, and domain readiness visible as one production-readiness surface.",
+    eyebrow: "",
+    title: "Security",
+    body: "How updates stay authentic: signed releases and patches, owner-scoped access, and a guarded rollback.",
   },
 };
 
@@ -67,39 +67,15 @@ export function ProductLayerTabPanel({
 
   return (
     <section className="grid gap-4">
-      <div className="operator-panel p-4 md:p-5">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <div className="border-b border-black/10 pb-5">
+        <div>
           <div className="min-w-0">
-            <p className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#8d8d93]">
-              {meta.eyebrow}
-            </p>
-            <h1 className="mt-2 max-w-3xl text-2xl font-semibold tracking-[-0.025em] text-black md:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-black">
               {meta.title}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#6d6d72]">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-[#6d6d72]">
               {meta.body}
             </p>
-          </div>
-
-          <div className="grid gap-2 border border-black/10 bg-[#f7f7f8] p-3">
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="uppercase tracking-[0.12em] text-[#8d8d93]">
-                Operator
-              </span>
-              <span className="truncate text-[#323236]">{operatorEmail}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="uppercase tracking-[0.12em] text-[#8d8d93]">
-                Product snapshot
-              </span>
-              <span className="text-[#323236]">{productState.status}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="uppercase tracking-[0.12em] text-[#8d8d93]">
-                Access
-              </span>
-              <span className="text-[#323236]">{signedIn ? "signed in" : "required"}</span>
-            </div>
           </div>
         </div>
       </div>
@@ -139,8 +115,12 @@ function ProductSnapshotStatus({
           ? "Product readiness snapshot pending"
           : "Sign in to load product readiness";
 
+  if (state.status === "ready" && !state.error) {
+    return null;
+  }
+
   return (
-    <div className="border border-black/10 bg-[#f7f7f8] p-3 text-sm text-[#6d6d72]">
+    <div className="rounded-md border border-black/10 bg-white p-3 text-sm text-[#6d6d72]">
       <div className="flex min-w-0 items-center gap-3">
         {state.status === "error" ? (
           <AlertCircle className="size-4 shrink-0 text-black" />
@@ -171,7 +151,7 @@ function OwnershipPanel({
       />
       <StatGrid rows={rows} />
       <div className="operator-table-shell overflow-hidden">
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-black/10 bg-[#f7f7f8] px-4 py-2.5 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-black/10 bg-[#f7f7f8] px-4 py-2.5 text-xs text-[#6d6d72]">
           <span>App</span>
           <span>Owner</span>
         </div>
@@ -274,7 +254,7 @@ function TrustPanel({
       <StatGrid rows={rows} />
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="border border-black/10 bg-[#f7f7f8] p-4">
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+          <p className="text-xs text-[#6d6d72]">
             Trust checks
           </p>
           <div className="mt-4 grid gap-3">
@@ -292,7 +272,7 @@ function TrustPanel({
           </div>
         </div>
         <div className="border border-black/10 bg-[#f7f7f8] p-4">
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+          <p className="text-xs text-[#6d6d72]">
             Domain map
           </p>
           <div className="mt-4 grid gap-2">
@@ -322,11 +302,8 @@ function PanelHeader({
   body: string;
 }) {
   return (
-    <div className="operator-panel-soft p-4">
-      <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
-        {eyebrow}
-      </p>
-      <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em]">{title}</h2>
+    <div data-section={eyebrow}>
+      <h2 className="text-lg font-semibold tracking-[-0.02em]">{title}</h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6d6d72]">{body}</p>
     </div>
   );
@@ -336,11 +313,11 @@ function StatGrid({ rows }: { rows: ConsoleStat[] }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {rows.map((row) => (
-        <div key={row.label} className="operator-panel-soft p-4">
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[#8d8d93]">
+        <div key={row.label} className="rounded-lg border border-black/10 bg-white p-4">
+          <p className="text-xs text-[#6d6d72]">
             {row.label}
           </p>
-          <p className="mt-2 break-words text-2xl font-semibold text-black">{row.value}</p>
+          <p className="mt-2 break-words text-2xl font-semibold text-black">{row.value === "true" ? "On" : row.value === "false" ? "Off" : row.value}</p>
           <p className="mt-2 text-xs leading-5 text-[#6d6d72]">{row.helper}</p>
         </div>
       ))}
@@ -352,7 +329,7 @@ function ProductLink({ href, label }: { href: string; label: string }) {
   return (
     <a
       href={href}
-      className="focus-ring flex items-center justify-between gap-3 border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#f3f3f4]"
+      className="focus-ring flex items-center justify-between gap-3 rounded-lg border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#f3f3f4]"
     >
       <span>{label}</span>
       <ExternalLink className="size-4 text-[#6d6d72]" />
@@ -362,7 +339,7 @@ function ProductLink({ href, label }: { href: string; label: string }) {
 
 function ProductEmpty({ title, body }: { title: string; body: string }) {
   return (
-    <div className="border border-dashed border-black/15 bg-[#f8f8f9] p-4">
+    <div className="rounded-lg border border-black/10 bg-white p-5">
       <FileCode2 className="mb-3 size-5 text-[#8d8d93]" />
       <p className="text-sm font-semibold text-black">{title}</p>
       <p className="mt-2 text-sm leading-6 text-[#6d6d72]">{body}</p>
