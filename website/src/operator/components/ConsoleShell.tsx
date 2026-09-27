@@ -276,7 +276,7 @@ export function ConsoleSidebar({
   return (
     <aside className="operator-sidebar flex min-w-0 flex-col border-b border-black/10 px-3 py-3 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-r lg:py-4">
       <a href="/" className="flex items-center gap-2.5 px-1.5">
-        <SoroqMark className="size-7" textClassName="text-[0.7rem]" />
+        <SoroqMark className="size-7" />
         <span className="text-[0.95rem] font-semibold tracking-tight">Soroq</span>
         <span className="text-sm text-[#8d8d93]">Console</span>
       </a>

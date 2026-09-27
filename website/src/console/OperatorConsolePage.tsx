@@ -1696,7 +1696,7 @@ export function OperatorConsolePage() {
               className="focus-ring inline-flex items-center gap-3"
               aria-label="Back to soroq.dev home"
             >
-              <SoroqMark className="size-9" textClassName="text-sm" />
+              <SoroqMark className="size-9" />
               <span>
                 <span className="block text-sm font-semibold tracking-tight">Soroq</span>
                 <span className="block text-xs text-[#7a7a80]">Operator console</span>

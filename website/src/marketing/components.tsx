@@ -824,13 +824,7 @@ export function SiteHeader({ activePath }: { activePath?: string } = {}) {
           href="/"
           aria-label="Soroq home"
         >
-          <SoroqMark
-            className={
-              isDark
-                ? "bg-signal text-[#08140d] shadow-[0_0_24px_rgba(39,182,122,0.2)] ring-1 ring-signal/40"
-                : undefined
-            }
-          />
+          <SoroqMark className={isDark ? "text-white" : undefined} />
           <span className="truncate text-xl font-bold tracking-normal">Soroq</span>
         </a>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Site">
