@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
+  Activity,
   AlertCircle,
   BarChart3,
   ChevronRight,
@@ -44,6 +45,8 @@ import {
   isProductLayerTab,
 } from "@/operator/components/ProductLayerTabs";
 import { buildProductReadinessView } from "@/operator/productReadiness";
+import { buildAnalyticsView } from "@/operator/analytics";
+import { OperatorAnalyticsPanel } from "@/operator/components/OperatorAnalyticsPanel";
 import {
   apiList,
   collectRecentClients,
@@ -244,11 +247,12 @@ export const releaseTabs: Array<{
 ];
 
 export const appWorkspaceTabs: Array<{
-  key: Extract<OperatorTab, "overview" | "releases" | "patches" | "health" | "rollback">;
+  key: Extract<OperatorTab, "overview" | "releases" | "patches" | "health" | "analytics" | "rollback">;
   label: string;
   icon: ComponentType<{ className?: string }>;
 }> = [
   { key: "releases", label: "Releases", icon: TerminalSquare },
+  { key: "analytics", label: "Analytics", icon: Activity },
   { key: "patches", label: "Patches", icon: RadioTower },
   { key: "health", label: "Health", icon: BarChart3 },
   { key: "rollback", label: "Rollback", icon: RotateCcw },
@@ -326,6 +330,8 @@ export function OperatorConsolePage() {
     useState<ApiState<JsonRecord>>(idleState);
   const [productState, setProductState] =
     useState<ApiState<JsonRecord>>(idleState);
+  const [analyticsState, setAnalyticsState] =
+    useState<ApiState<JsonRecord>>(idleState);
   const [authUser, setAuthUser] = useState<FirebaseAuthUser | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -369,6 +375,8 @@ export function OperatorConsolePage() {
   // app/release/patch scope so only the latest request resolves into state.
   const inventoryAbortRef = useRef<AbortController | null>(null);
   const patchHealthAbortRef = useRef<AbortController | null>(null);
+  const analyticsAbortRef = useRef<AbortController | null>(null);
+  const analyticsLoadedForRef = useRef<string>("");
   const cliLoginParams = new URLSearchParams(window.location.search);
   const cliLoginCallback = cliLoginParams.get("cli_login_callback") || "";
   const cliLoginState = cliLoginParams.get("cli_login_state") || "";
@@ -1219,6 +1227,33 @@ export function OperatorConsolePage() {
     void loadPatchHealth(nextPatchId);
   }
 
+  // Delivery analytics for the selected app: the control plane derives every number from device boot
+  // reports (GET /v1/analytics via /api/operator/analytics); nothing is computed here.
+  async function loadAnalytics(appId: string) {
+    const trimmedAppId = appId.trim();
+    if (!trimmedAppId) {
+      return;
+    }
+    analyticsAbortRef.current?.abort();
+    const abortController = new AbortController();
+    analyticsAbortRef.current = abortController;
+    analyticsLoadedForRef.current = trimmedAppId;
+    setAnalyticsState({ status: "loading", data: null, error: null });
+    try {
+      const data = await fetchOperatorJson<JsonRecord>(
+        `/api/operator/analytics?app_id=${encodeURIComponent(trimmedAppId)}`,
+        undefined,
+        { signal: abortController.signal },
+      );
+      setAnalyticsState({ status: "ready", data, error: null, receivedAt: new Date().toISOString() });
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      setAnalyticsState({ status: "error", data: null, error: errorMessage(error) });
+    }
+  }
+
   async function loadPatchHealth(patchIdOverride?: string) {
     const trimmedPatchId = (patchIdOverride ?? patchId).trim();
     if (!trimmedPatchId) {
@@ -1408,6 +1443,17 @@ export function OperatorConsolePage() {
       setAuthError(errorMessage(error));
     }
   }
+
+  useEffect(() => {
+    if (operatorTab !== "analytics" || !authToken || !selectedAppId) {
+      return;
+    }
+    if (analyticsLoadedForRef.current === selectedAppId && analyticsState.status !== "idle") {
+      return;
+    }
+    void loadAnalytics(selectedAppId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [operatorTab, authToken, selectedAppId]);
 
   useEffect(() => {
     setRollbackConfirm("");
@@ -2718,6 +2764,16 @@ export function OperatorConsolePage() {
                           />
                         </div>
                       </div>
+                    ) : null}
+
+                    {!selectedReleaseInScope && operatorTab === "analytics" ? (
+                      <OperatorAnalyticsPanel
+                        appId={selectedAppId ?? ""}
+                        state={analyticsState}
+                        view={buildAnalyticsView(analyticsState)}
+                        canLoad={Boolean(authToken)}
+                        onRefresh={() => void loadAnalytics(selectedAppId ?? "")}
+                      />
                     ) : null}
 
                     {!selectedReleaseInScope && operatorTab === "rollback" ? (
