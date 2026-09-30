@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAnalyticsView } from "./analytics";
+import { buildAnalyticsView, releaseInstalls } from "./analytics";
 import type { ApiState, JsonRecord } from "./types";
 
 const ready = (payload: unknown): ApiState<JsonRecord> => ({
@@ -172,5 +172,99 @@ describe("the shipped console uses this model", () => {
     expect(proxy).toContain("forwardJSON");
     expect(proxy).toContain("/v1/analytics");
     expect(proxy).not.toContain("isOperatorScopeDenied");
+  });
+});
+
+describe("installs", () => {
+  const devices = [
+    {
+      release_id: "campus-android-1.0.43-59",
+      release_ids: ["campus-android-1.0.43-59", "campus-ios-1.0.43-59"],
+      version: "1.0.43+59",
+      runtime_id: "1ef6",
+      channel: "stable",
+      devices: 963,
+      active_24h: 963,
+      active_7d: 963,
+      last_seen: "2026-09-30T13:10:00Z",
+      platforms: [
+        { platform: "android", devices: 46, active_24h: 46, active_7d: 46 },
+        { platform: "unknown", devices: 917, active_24h: 917, active_7d: 917 },
+      ],
+    },
+    {
+      release_id: "campus-ios-1.0.41-57",
+      version: "1.0.41+57",
+      runtime_id: "85f0",
+      channel: "stable",
+      devices: 10,
+      active_24h: 4,
+      active_7d: 10,
+    },
+  ];
+
+  it("reads each build's split as the server sent it", () => {
+    const view = buildAnalyticsView(ready({ ...populated, devices }));
+    expect(view.installs).toHaveLength(2);
+    const [current, older] = view.installs!;
+    expect(current.releaseIds).toEqual(["campus-android-1.0.43-59", "campus-ios-1.0.43-59"]);
+    expect(current.platforms).toEqual({
+      android: { devices: 46, active24h: 46, active7d: 46 },
+      unknown: { devices: 917, active24h: 917, active7d: 917 },
+    });
+    // A server that predates the split sends no platforms: no split, rather than an all-zero one.
+    expect(older.platforms).toBeNull();
+    expect(older.releaseIds).toEqual(["campus-ios-1.0.41-57"]);
+  });
+
+  it("tells a server without install counts from a fleet with none", () => {
+    expect(buildAnalyticsView(ready(populated)).installs).toBeNull();
+    expect(buildAnalyticsView(ready({ ...populated, devices: [] })).installs).toEqual([]);
+    const failed = buildAnalyticsView(ready({ ...populated, devices_unavailable: "device counts could not be read right now" }));
+    expect(failed.installs).toBeNull();
+    expect(failed.installsUnavailable).toBe("device counts could not be read right now");
+  });
+
+  it("gives each release its own platform's share, and no figure when there is none", () => {
+    const groups = buildAnalyticsView(ready({ ...populated, devices })).installs;
+    const releases = [
+      { id: "campus-android-1.0.43-59", platform: "android" },
+      { id: "campus-ios-1.0.43-59", platform: "ios" },
+      { id: "campus-ios-1.0.41-57", platform: "ios" },
+      { id: "campus-ios-1.0.40-56", platform: "ios" },
+    ];
+    expect(releaseInstalls(groups, releases, "campus-android-1.0.43-59")?.devices).toBe(46);
+    // Split, and no iOS entry: counted as zero on iOS.
+    expect(releaseInstalls(groups, releases, "campus-ios-1.0.43-59")?.devices).toBe(0);
+    // Not split: no per-platform figure.
+    expect(releaseInstalls(groups, releases, "campus-ios-1.0.41-57")).toBeNull();
+    // No device of this build has checked in.
+    expect(releaseInstalls(groups, releases, "campus-ios-1.0.40-56")).toBeNull();
+    expect(releaseInstalls(null, releases, "campus-android-1.0.43-59")).toBeNull();
+  });
+
+  it("counts a build registered twice on one platform once, on the newest release", () => {
+    const twice = [
+      {
+        release_ids: ["campus-ios-1.0.41-57", "campus-android-1.0.41-57-r2", "campus-android-1.0.41-57"],
+        version: "1.0.41+57",
+        runtime_id: "85f0",
+        channel: "stable",
+        devices: 228,
+        platforms: [
+          { platform: "android", devices: 178 },
+          { platform: "ios", devices: 50 },
+        ],
+      },
+    ];
+    const groups = buildAnalyticsView(ready({ ...populated, devices: twice })).installs;
+    const releases = [
+      { id: "campus-ios-1.0.41-57", platform: "ios" },
+      { id: "campus-android-1.0.41-57-r2", platform: "android" },
+      { id: "campus-android-1.0.41-57", platform: "android" },
+    ];
+    expect(releaseInstalls(groups, releases, "campus-android-1.0.41-57-r2")?.devices).toBe(178);
+    expect(releaseInstalls(groups, releases, "campus-android-1.0.41-57")).toBeNull();
+    expect(releaseInstalls(groups, releases, "campus-ios-1.0.41-57")?.devices).toBe(50);
   });
 });

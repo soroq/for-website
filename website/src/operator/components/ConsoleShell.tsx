@@ -21,7 +21,7 @@ import {
 
 import { SoroqMark } from "@/components/SoroqMark";
 import { Button } from "@/components/ui/button";
-import type { AnalyticsView, PatchDeliveryRow } from "../analytics";
+import type { AnalyticsView, InstallCount, InstallGroup, PatchDeliveryRow } from "../analytics";
 import type { ApiState, JsonRecord, OperatorTab } from "../types";
 import { CopyButton, HEALTH, REASON_EXPLAINED, healthOf, pct, rate, type Health } from "./OperatorAnalyticsPage";
 
@@ -616,11 +616,114 @@ export type ReleaseDigest = {
   live: number;
   rolledBack: number;
   latest: PatchDeliveryRow | null;
+  /** Installs on this release's platform; null when there is no figure (see releaseInstalls). */
+  installs: InstallCount | null;
 };
+
+const count = (n: number) => n.toLocaleString("en-US");
+
+/** Orders versions like 1.0.43+59 newest first: numeric runs compare as numbers. */
+function compareVersionsDesc(a: string, b: string) {
+  const parts = (v: string) => v.split(/[^0-9]+/).filter(Boolean).map(Number);
+  const pa = parts(a);
+  const pb = parts(b);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pb[i] ?? -1) - (pa[i] ?? -1);
+    if (d !== 0) return d;
+  }
+  return b.localeCompare(a);
+}
+
+/**
+ * Phones running each build, from the update check an app makes on every launch, split by the platform
+ * each phone checked in from. Every number is the server's; nothing is added up here.
+ */
+function InstallsSection({ installs, unavailable }: { installs: InstallGroup[] | null; unavailable: string }) {
+  if (unavailable) {
+    return (
+      <section>
+        <h2 className="text-base font-semibold">Installs</h2>
+        <p className="mt-2 text-sm text-[#6d6d72]">Install counts could not be read right now: {unavailable}</p>
+      </section>
+    );
+  }
+  if (!installs) {
+    return null;
+  }
+  const groups = [...installs].sort((a, b) => compareVersionsDesc(a.version, b.version));
+  const split = groups.some((g) => g.platforms !== null);
+  const showUnknown = groups.some((g) => (g.platforms?.unknown?.devices ?? 0) > 0);
+  const cell = (g: InstallGroup, name: "android" | "ios" | "unknown") =>
+    g.platforms ? count(g.platforms[name]?.devices ?? 0) : "—";
+  return (
+    <section>
+      <h2 className="text-base font-semibold">Installs</h2>
+      <p className="mt-0.5 text-sm text-[#6d6d72]">
+        Phones running each version, counted when the app checks for updates at launch.
+      </p>
+      {groups.length ? (
+        <div className="mt-3 overflow-x-auto rounded-lg border border-black/10 bg-white">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead className="border-b border-black/10 text-xs text-[#6d6d72]">
+              <tr>
+                <th className="px-4 py-2.5 font-medium">Version</th>
+                {split ? (
+                  <>
+                    <th className="px-4 py-2.5 text-right font-medium">Android</th>
+                    <th className="px-4 py-2.5 text-right font-medium">iOS</th>
+                    {showUnknown ? <th className="px-4 py-2.5 text-right font-medium">Not yet attributed</th> : null}
+                  </>
+                ) : null}
+                <th className="px-4 py-2.5 text-right font-medium">Total</th>
+                <th className="px-4 py-2.5 text-right font-medium">Opened in last 24h</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/[0.07]">
+              {groups.map((g) => (
+                <tr key={`${g.runtimeId}:${g.channel}`}>
+                  <td className="px-4 py-3">
+                    <span className="block font-semibold">{g.version || "Unregistered build"}</span>
+                    {g.channel && g.channel !== "stable" ? (
+                      <span className="block text-xs text-[#8d8d93]">{g.channel} channel</span>
+                    ) : null}
+                  </td>
+                  {split ? (
+                    <>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">{cell(g, "android")}</td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">{cell(g, "ios")}</td>
+                      {showUnknown ? (
+                        <td className="px-4 py-3 text-right tabular-nums text-[#6d6d72]">{cell(g, "unknown")}</td>
+                      ) : null}
+                    </>
+                  ) : null}
+                  <td className="px-4 py-3 text-right tabular-nums">{count(g.devices)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-[#6d6d72]">{count(g.active24h)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {showUnknown ? (
+            <p className="border-t border-black/10 px-4 py-2.5 text-xs leading-5 text-[#6d6d72]">
+              Not yet attributed: phones counted before installs were split by platform. Each moves to Android or
+              iOS the next time the app is opened on it.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-3 rounded-lg border border-black/10 bg-white p-5">
+          <p className="text-sm font-semibold">No phone has checked in yet</p>
+          <p className="mt-1 text-sm text-[#6d6d72]">Phones appear here the first time a Soroq build of the app is opened.</p>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export function AppOverview({
   digest,
   releases,
+  installs,
+  installsUnavailable,
   onOpenAnalytics,
   onOpenRelease,
   onOpenRollback,
@@ -628,6 +731,8 @@ export function AppOverview({
 }: {
   digest: AppDigest;
   releases: ReleaseDigest[];
+  installs: InstallGroup[] | null;
+  installsUnavailable: string;
   onOpenAnalytics: () => void;
   onOpenRelease: (releaseId: string) => void;
   onOpenRollback: (patchId: string) => void;
@@ -711,6 +816,8 @@ export function AppOverview({
         </section>
       ) : null}
 
+      <InstallsSection installs={installs} unavailable={installsUnavailable} />
+
       <section>
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -723,11 +830,12 @@ export function AppOverview({
         </div>
         {releases.length ? (
           <div className="mt-3 overflow-x-auto rounded-lg border border-black/10 bg-white">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-black/10 text-xs text-[#6d6d72]">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Version</th>
                   <th className="px-4 py-2.5 font-medium">Platform</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Installs</th>
                   <th className="px-4 py-2.5 font-medium">Latest patch</th>
                   <th className="px-4 py-2.5 text-right font-medium">Live</th>
                   <th className="px-4 py-2.5 text-right font-medium">Rolled back</th>
@@ -746,6 +854,9 @@ export function AppOverview({
                         </button>
                       </td>
                       <td className="px-4 py-3 text-[#4d4d52]">{platformLabel(release.platform) || "—"}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {release.installs ? count(release.installs.devices) : <span className="text-[#8d8d93]">—</span>}
+                      </td>
                       <td className="px-4 py-3">
                         {release.latest && h ? (
                           <span className={`inline-flex items-center gap-2 ${HEALTH[h].text}`}>
