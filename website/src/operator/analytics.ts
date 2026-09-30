@@ -39,10 +39,41 @@ export type PatchDeliveryRow = {
   failureClasses: Array<{ label: string; title: string; count: number }>;
 };
 
+/** One platform's share of an install group, as the server counted it. */
+export type InstallCount = { devices: number; active24h: number; active7d: number };
+
+/**
+ * Installs of one build (runtime + channel), from the update checks devices make on every launch. A
+ * runtime is shared by the Android and iOS releases of one version, so a group names every release it
+ * covers, and the server splits it by the platform each install checked in from.
+ */
+export type InstallGroup = {
+  runtimeId: string;
+  channel: string;
+  version: string;
+  releaseIds: string[];
+  devices: number;
+  active24h: number;
+  active7d: number;
+  lastSeen: string;
+  /**
+   * Per platform, as the server sent it. A platform the server did not list has NO entry -- not a zero
+   * entry. `null` when the server predates the split.
+   */
+  platforms: { android?: InstallCount; ios?: InstallCount; unknown?: InstallCount } | null;
+};
+
 export type AnalyticsView = {
   /** Set when the payload could not be read. Not an empty fleet, and not a failing one. */
   unavailable: string;
   rows: PatchDeliveryRow[];
+  /**
+   * Installs per build. `null` when the server sent no device section at all (it predates install
+   * counting, or the read failed -- then `installsUnavailable` says so). An empty list means no device
+   * has checked in yet.
+   */
+  installs: InstallGroup[] | null;
+  installsUnavailable: string;
   totals: {
     patches: number;
     observedPatches: number;
@@ -112,6 +143,8 @@ export function buildAnalyticsView(state: ApiState<JsonRecord>): AnalyticsView {
     return {
       unavailable: state.error || "Delivery analytics could not be read.",
       rows: [],
+      installs: null,
+      installsUnavailable: "",
       totals: empty,
       notice: "",
       summary: "",
@@ -166,10 +199,52 @@ export function buildAnalyticsView(state: ApiState<JsonRecord>): AnalyticsView {
   return {
     unavailable: "",
     rows,
+    installs: parseInstalls(payload?.devices),
+    installsUnavailable: str(payload, "devices_unavailable"),
     totals,
     notice: str(payload, "notice"),
     summary: summarise(totals),
   };
+}
+
+function installCount(record: JsonRecord): InstallCount {
+  return { devices: num(record, "devices"), active24h: num(record, "active_24h"), active7d: num(record, "active_7d") };
+}
+
+function parseInstalls(raw: unknown): InstallGroup[] | null {
+  if (!Array.isArray(raw)) {
+    return null;
+  }
+  return raw
+    .map(asRecord)
+    .filter((row): row is JsonRecord => row !== null)
+    .map((row) => {
+      const releaseIds = Array.isArray(row.release_ids)
+        ? row.release_ids.filter((id): id is string => typeof id === "string" && id.trim() !== "")
+        : [];
+      const single = str(row, "release_id");
+      let platforms: InstallGroup["platforms"] = null;
+      if (Array.isArray(row.platforms)) {
+        platforms = {};
+        for (const entry of row.platforms.map(asRecord)) {
+          const name = str(entry, "platform");
+          if (entry && (name === "android" || name === "ios" || name === "unknown")) {
+            platforms[name] = installCount(entry);
+          }
+        }
+      }
+      return {
+        runtimeId: str(row, "runtime_id"),
+        channel: str(row, "channel"),
+        version: str(row, "version"),
+        releaseIds: releaseIds.length ? releaseIds : single ? [single] : [],
+        devices: num(row, "devices"),
+        active24h: num(row, "active_24h"),
+        active7d: num(row, "active_7d"),
+        lastSeen: str(row, "last_seen"),
+        platforms,
+      };
+    });
 }
 
 function summarise(totals: AnalyticsView["totals"]): string {
@@ -190,4 +265,37 @@ function summarise(totals: AnalyticsView["totals"]): string {
     parts.push(`${totals.rolledBackPatches} rolled back`);
   }
   return `${parts.join(", ")}.`;
+}
+
+/**
+ * The installs one release's platform accounts for: the platform's share of the install group that
+ * covers the release. `null` -- shown as absent, never as 0 -- when no device of that build has checked
+ * in, when the server does not split by platform, or when the release's platform is neither Android nor
+ * iOS. A group that is split but lists no entry for the platform has, as counted, zero installs on it.
+ *
+ * Devices report the build, not the release, so when one build is registered twice on a platform (a
+ * re-registered release) its phones belong to it once: to the NEWEST such release in `releases`
+ * (newest first). The older one gets `null`, so a table never shows the same phones twice.
+ */
+export function releaseInstalls(
+  groups: InstallGroup[] | null,
+  releases: Array<{ id: string; platform: string }>,
+  releaseId: string,
+): InstallCount | null {
+  const release = releases.find((r) => r.id === releaseId);
+  const name = (release?.platform ?? "").trim().toLowerCase();
+  if (!groups || !release || (name !== "android" && name !== "ios")) {
+    return null;
+  }
+  const group = groups.find((g) => g.releaseIds.includes(releaseId));
+  if (!group || !group.platforms) {
+    return null;
+  }
+  const owner = releases.find(
+    (r) => group.releaseIds.includes(r.id) && r.platform.trim().toLowerCase() === name,
+  );
+  if (owner?.id !== releaseId) {
+    return null;
+  }
+  return group.platforms[name] ?? { devices: 0, active24h: 0, active7d: 0 };
 }

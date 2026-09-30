@@ -47,7 +47,7 @@ import {
   isProductLayerTab,
 } from "@/operator/components/ProductLayerTabs";
 import { buildProductReadinessView } from "@/operator/productReadiness";
-import { buildAnalyticsView } from "@/operator/analytics";
+import { buildAnalyticsView, releaseInstalls } from "@/operator/analytics";
 import { OperatorAnalyticsPage } from "@/operator/components/OperatorAnalyticsPage";
 import {
   apiList,
@@ -769,8 +769,13 @@ export function OperatorConsolePage() {
   const selectedSummary = appSummaries.find((app) => app.id === scopedAppId) ?? null;
   const selectedDigest = digestApp(selectedSummary ?? {});
   const selectedRows = selectedSummary?.view?.rows ?? [];
-  const releaseDigests: ReleaseDigest[] = [...visibleReleases]
-    .sort((a, b) => recordTimeValue(b) - recordTimeValue(a))
+  const selectedInstalls = selectedSummary?.view?.installs ?? null;
+  const releasesNewestFirst = [...visibleReleases].sort((a, b) => recordTimeValue(b) - recordTimeValue(a));
+  const releasePlatforms = releasesNewestFirst.map((release) => ({
+    id: recordId(release),
+    platform: formatRecordText(release, ["platform"], ""),
+  }));
+  const releaseDigests: ReleaseDigest[] = releasesNewestFirst
     .map((release) => {
       const id = recordId(release);
       const rows = selectedRows.filter((row) => row.releaseId === id);
@@ -779,15 +784,17 @@ export function OperatorConsolePage() {
         (best, row) => (!best || row.patchNumber > best.patchNumber ? row : best),
         null,
       );
+      const platform = formatRecordText(release, ["platform"], "");
       return {
         id,
         version: formatRecordText(release, ["version", "version_name"], id),
-        platform: formatRecordText(release, ["platform"], ""),
+        platform,
         createdAt: recordDateLabel(release),
         patches: rows.length,
         live: rows.length - rolledBack,
         rolledBack,
         latest,
+        installs: releaseInstalls(selectedInstalls, releasePlatforms, id),
       };
     });
   const releaseVersionById = new Map(
@@ -2219,6 +2226,8 @@ export function OperatorConsolePage() {
                       <AppOverview
                         digest={selectedDigest}
                         releases={releaseDigests}
+                        installs={selectedInstalls}
+                        installsUnavailable={selectedSummary?.view?.installsUnavailable ?? ""}
                         onOpenAnalytics={() => setOperatorTab("analytics")}
                         onOpenRelease={selectRelease}
                         onOpenPatches={() => setOperatorTab("patches")}
