@@ -266,36 +266,3 @@ function summarise(totals: AnalyticsView["totals"]): string {
   }
   return `${parts.join(", ")}.`;
 }
-
-/**
- * The installs one release's platform accounts for: the platform's share of the install group that
- * covers the release. `null` -- shown as absent, never as 0 -- when no device of that build has checked
- * in, when the server does not split by platform, or when the release's platform is neither Android nor
- * iOS. A group that is split but lists no entry for the platform has, as counted, zero installs on it.
- *
- * Devices report the build, not the release, so when one build is registered twice on a platform (a
- * re-registered release) its phones belong to it once: to the NEWEST such release in `releases`
- * (newest first). The older one gets `null`, so a table never shows the same phones twice.
- */
-export function releaseInstalls(
-  groups: InstallGroup[] | null,
-  releases: Array<{ id: string; platform: string }>,
-  releaseId: string,
-): InstallCount | null {
-  const release = releases.find((r) => r.id === releaseId);
-  const name = (release?.platform ?? "").trim().toLowerCase();
-  if (!groups || !release || (name !== "android" && name !== "ios")) {
-    return null;
-  }
-  const group = groups.find((g) => g.releaseIds.includes(releaseId));
-  if (!group || !group.platforms) {
-    return null;
-  }
-  const owner = releases.find(
-    (r) => group.releaseIds.includes(r.id) && r.platform.trim().toLowerCase() === name,
-  );
-  if (owner?.id !== releaseId) {
-    return null;
-  }
-  return group.platforms[name] ?? { devices: 0, active24h: 0, active7d: 0 };
-}

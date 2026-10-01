@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAnalyticsView, releaseInstalls } from "./analytics";
+import { buildAnalyticsView } from "./analytics";
 import type { ApiState, JsonRecord } from "./types";
 
 const ready = (payload: unknown): ApiState<JsonRecord> => ({
@@ -160,11 +160,13 @@ describe("the shipped console uses this model", () => {
     return readFileSync(new URL(relativePath, import.meta.url), "utf8");
   };
 
-  it("the console page builds the view from the analytics state and renders the panel", async () => {
+  it("the console builds every view from the analytics state and renders the panel", async () => {
     const page = await read("../console/OperatorConsolePage.tsx");
-    expect(page).toContain("buildAnalyticsView(analyticsState)");
+    const data = await read("../console/useConsoleData.ts");
+    const api = await read("../console/api.ts");
+    expect(data).toContain("buildAnalyticsView(state)");
     expect(page).toContain("<OperatorAnalyticsPage");
-    expect(page).toContain("/api/operator/analytics?app_id=");
+    expect(api).toContain("/api/operator/analytics");
   });
 
   it("the proxy forwards and computes nothing", async () => {
@@ -225,46 +227,4 @@ describe("installs", () => {
     expect(failed.installsUnavailable).toBe("device counts could not be read right now");
   });
 
-  it("gives each release its own platform's share, and no figure when there is none", () => {
-    const groups = buildAnalyticsView(ready({ ...populated, devices })).installs;
-    const releases = [
-      { id: "campus-android-1.0.43-59", platform: "android" },
-      { id: "campus-ios-1.0.43-59", platform: "ios" },
-      { id: "campus-ios-1.0.41-57", platform: "ios" },
-      { id: "campus-ios-1.0.40-56", platform: "ios" },
-    ];
-    expect(releaseInstalls(groups, releases, "campus-android-1.0.43-59")?.devices).toBe(46);
-    // Split, and no iOS entry: counted as zero on iOS.
-    expect(releaseInstalls(groups, releases, "campus-ios-1.0.43-59")?.devices).toBe(0);
-    // Not split: no per-platform figure.
-    expect(releaseInstalls(groups, releases, "campus-ios-1.0.41-57")).toBeNull();
-    // No device of this build has checked in.
-    expect(releaseInstalls(groups, releases, "campus-ios-1.0.40-56")).toBeNull();
-    expect(releaseInstalls(null, releases, "campus-android-1.0.43-59")).toBeNull();
-  });
-
-  it("counts a build registered twice on one platform once, on the newest release", () => {
-    const twice = [
-      {
-        release_ids: ["campus-ios-1.0.41-57", "campus-android-1.0.41-57-r2", "campus-android-1.0.41-57"],
-        version: "1.0.41+57",
-        runtime_id: "85f0",
-        channel: "stable",
-        devices: 228,
-        platforms: [
-          { platform: "android", devices: 178 },
-          { platform: "ios", devices: 50 },
-        ],
-      },
-    ];
-    const groups = buildAnalyticsView(ready({ ...populated, devices: twice })).installs;
-    const releases = [
-      { id: "campus-ios-1.0.41-57", platform: "ios" },
-      { id: "campus-android-1.0.41-57-r2", platform: "android" },
-      { id: "campus-android-1.0.41-57", platform: "android" },
-    ];
-    expect(releaseInstalls(groups, releases, "campus-android-1.0.41-57-r2")?.devices).toBe(178);
-    expect(releaseInstalls(groups, releases, "campus-android-1.0.41-57")).toBeNull();
-    expect(releaseInstalls(groups, releases, "campus-ios-1.0.41-57")?.devices).toBe(50);
-  });
 });
